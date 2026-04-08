@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<title>Planer finansowy</title>
+
+<style>
+body {
+  font-family: Arial;
+  background: #f4f6f9;
+  margin: 0;
+}
+
+header {
+  background: #2c3e50;
+  color: white;
+  padding: 15px;
+  text-align: center;
+}
+
+.tabs {
+  display: flex;
+  background: #34495e;
+}
+
+.tabs button {
+  flex: 1;
+  padding: 15px;
+  border: none;
+  background: #34495e;
+  color: white;
+  cursor: pointer;
+}
+
+.tabs button.active {
+  background: #1abc9c;
+}
+
+.tab {
+  display: none;
+  padding: 20px;
+}
+
+.tab.active {
+  display: block;
+}
+
+.card {
+  background: white;
+  padding: 15px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+input, select, button {
+  padding: 8px;
+  margin: 5px;
+}
+
+button {
+  background: #1abc9c;
+  color: white;
+  border: none;
+  border-radius: 5px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: center;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+<h1>💰 Planer finansowy</h1>
+</header>
+
+<div class="tabs">
+<button onclick="openTab(0)" class="active">📊 Plan</button>
+<button onclick="openTab(1)">💸 Transakcje</button>
+<button onclick="openTab(2)">🏦 Oszczędności</button>
+</div>
+
+<!-- TAB 1 -->
+<div class="tab active">
+
+
+<div class="card">
+<h3>📊 Szacowane wartości</h3>
+<div id="szacowane"></div>
+</div>
+<div class="card">
+<h3>➕ Kategorie</h3>
+<input id="katNazwa" placeholder="Nazwa">
+<select id="katTyp">
+<option value="dochód">Dochód</option>
+<option value="wydatek">Wydatek</option>
+</select>
+<button onclick="dodajKategorie()">Dodaj</button>
+</div>
+
+<div class="card">
+<h3>📈 Podsumowanie</h3>
+<div id="podsumowanie"></div>
+</div>
+
+</div>
+
+<!-- TAB 2 -->
+<div class="tab">
+
+<div class="card">
+<h3>💸 Dodaj transakcję</h3>
+<input id="kwota" type="number" placeholder="Kwota">
+<select id="kategoriaSelect"></select>
+<button onclick="dodajTransakcje()">Dodaj</button>
+</div>
+
+<div class="card">
+<h3>📜 Historia transakcji</h3>
+<div id="historia"></div>
+</div>
+
+</div>
+
+<!-- TAB 3 -->
+<div class="tab">
+<div class="card">
+<h3>🏦 Oszczędności</h3>
+
+</div>
+</div>
+
+<script>
+let KategorieDochody = [];
+let KategorieWydatki = [];
+let SzacowaneDochody = {};
+let SzacowaneWydatki = {};
+let Transakcje = [];
+
+function openTab(i){
+  document.querySelectorAll(".tab").forEach((t,idx)=>{
+    t.classList.toggle("active", idx===i);
+  });
+  document.querySelectorAll(".tabs button").forEach((b,idx)=>{
+    b.classList.toggle("active", idx===i);
+  });
+}
+
+function dodajKategorie(){
+  let input = document.getElementById("katNazwa");
+  let nazwa = input.value;
+  let typ = document.getElementById("katTyp").value;
+
+  if(!nazwa) return;
+
+  if(typ==="dochód") KategorieDochody.push(nazwa);
+  else KategorieWydatki.push(nazwa);
+
+  input.value = ""; // czyszczenie pola
+
+  aktualizuj();
+}
+
+function aktualizuj(){
+  let select = document.getElementById("kategoriaSelect");
+  select.innerHTML="";
+
+  [...KategorieDochody, ...KategorieWydatki].forEach(k=>{
+    let o=document.createElement("option");
+    o.value=k;
+    o.textContent=k;
+    select.appendChild(o);
+  });
+
+  let div=document.getElementById("szacowane");
+  div.innerHTML="";
+
+  [...KategorieDochody, ...KategorieWydatki].forEach(k=>{
+    let input=document.createElement("input");
+    input.placeholder=k;
+
+    input.value = SzacowaneDochody[k] || SzacowaneWydatki[k] || "";
+
+    input.onchange=()=>{
+      if(KategorieDochody.includes(k))
+        SzacowaneDochody[k]=Number(input.value);
+      else
+        SzacowaneWydatki[k]=Number(input.value);
+    };
+
+    div.appendChild(document.createTextNode(k+": "));
+    div.appendChild(input);
+    div.appendChild(document.createElement("br"));
+  });
+}
+
+function dodajTransakcje(){
+  let kwota=Number(document.getElementById("kwota").value);
+  let kat=document.getElementById("kategoriaSelect").value;
+
+  if(!kwota || !kat) return;
+
+  let typ = KategorieDochody.includes(kat) ? "dochód" : "wydatek";
+
+  let realKwota = typ==="dochód" ? kwota : -kwota;
+
+  Transakcje.push({
+    kwota: realKwota,
+    kategoria: kat,
+    typ: typ
+  });
+
+  pokazPodsumowanie();
+  pokazHistorie();
+}
+
+function pokazPodsumowanie(){
+  let suma={};
+
+  Transakcje.forEach(t=>{
+    suma[t.kategoria]=(suma[t.kategoria]||0)+t.kwota;
+  });
+
+  let html=`<table>
+<tr>
+<th>Kategoria</th>
+<th>Kwota (+ dochody / - wydatki)</th>
+</tr>`;
+
+  [...KategorieDochody, ...KategorieWydatki].forEach(k=>{
+    let real = suma[k] || 0;
+    html+=`<tr><td>${k}</td><td>${real}</td></tr>`;
+  });
+
+  html+=`</table>`;
+
+  document.getElementById("podsumowanie").innerHTML=html;
+}
+
+function pokazHistorie(){
+  let html="<table><tr><th>Kategoria</th><th>Kwota</th></tr>";
+
+  Transakcje.forEach(t=>{
+    html+=`<tr><td>${t.kategoria}</td><td>${t.kwota}</td></tr>`;
+  });
+
+  html+="</table>";
+
+  document.getElementById("historia").innerHTML=html;
+}
+
+function liczOszczednosci(){
+  let start=Number(document.getElementById("startOszczednosci").value);
+
+  let suma=0;
+
+  Transakcje.forEach(t=>{
+    s
