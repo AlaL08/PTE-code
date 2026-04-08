@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>FinPlan Mobile</title>
+    
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0d0f14">
+    
+    <link rel="manifest" href="data:application/manifest+json,{%22name%22:%22FinPlan%20App%22,%22short_name%22:%22FinPlan%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22background_color%22:%22#0d0f14%22,%22theme_color%22:%22#0d0f14%22}">
+    
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg: #0d0f14;
+            --surface: #161921;
+            --surface2: #1e2230;
+            --border: rgba(255,255,255,0.07);
+            --text: #eef0f4;
+            --text-dim: #7a8099;
+            --accent: #c8f53e;
+            --red: #ff5757;
+            --green: #3effa3;
+            --safe-top: env(safe-area-inset-top);
+            --safe-bottom: env(safe-area-inset-bottom);
+        }
+
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+            -webkit-tap-highlight-color: transparent; 
+            user-select: none;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 15px;
+            overflow-x: hidden;
+            padding-bottom: calc(75px + var(--safe-bottom));
+        }
+
+        /* HEADER */
+        header {
+            padding: calc(20px + var(--safe-top)) 20px 10px;
+            background: var(--bg);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo { font-weight: 700; font-size: 22px; letter-spacing: -0.8px; }
+        .logo span { color: var(--accent); }
+
+        /* TAB BAR (DÓŁ) */
+        .tab-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: calc(65px + var(--safe-bottom));
+            background: rgba(22, 25, 33, 0.96);
+            backdrop-filter: blur(15px);
+            border-top: 1px solid var(--border);
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            padding-bottom: var(--safe-bottom);
+            z-index: 1000;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: none;
+            border: none;
+            color: var(--text-dim);
+            font-size: 10px;
+            font-weight: 600;
+            gap: 4px;
+            transition: 0.2s;
+        }
+
+        .nav-item.active { color: var(--accent); }
+        .nav-item svg { width: 24px; height: 24px; fill: currentColor; }
+
+        /* CONTENT */
+        main { padding: 16px; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .card {
+            background: var(--surface);
+            border-radius: 24px;
+            padding: 24px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border);
+        }
+
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+        .small-card { background: var(--surface); padding: 16px; border-radius: 18px; border: 1px solid var(--border); }
+        
+        .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-dim); margin-bottom: 6px; }
+        .val { font-size: 20px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+
+        /* TRANSAKCJE */
+        .tx-list { margin-top: 10px; }
+        .tx-item {
+            display: flex;
+            align-items: center;
+            padding: 14px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .tx-icon {
+            width: 48px; height: 48px;
+            background: var(--surface2);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            margin-right: 14px;
+        }
+        .tx-info { flex: 1; }
+        .tx-name { font-weight: 600; font-size: 16px; margin-bottom: 2px; }
+        .tx-meta { font-size: 12px; color: var(--text-dim); }
+        .tx-amount { font-family: 'JetBrains Mono', monospace; font-weight: 700; text-align: right; }
+
+        /* PROGRESS BARS */
+        .progress-container { margin-top: 10px; }
+        .progress-bar { height: 8px; background: var(--surface2); border-radius: 4px; margin: 8px 0; overflow: hidden; }
+        .progress-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+
+        /* FAB */
+        .fab {
+            position: fixed;
+            right: 20px;
+            bottom: calc(85px + var(--safe-bottom));
+            width: 60px; height: 60px;
+            border-radius: 30px;
+            background: var(--accent);
+            color: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            box-shadow: 0 8px 20px rgba(200, 245, 62, 0.4);
+            border: none;
+            z-index: 99;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo">Fin<span>Plan</span></div>
+    <div style="font-size: 12px; color: var(--text-dim)">Kwiecień 2024</div>
+</header>
+
+<main>
+    <section class="tab-content active" id="tab-0">
+        <div class="card">
+            <div class="label">Twój całkowity bilans</div>
+            <div class="val" style="font-size: 36px; margin: 8px 0; letter-spacing: -1px;">12 450,00 zł</div>
+            <div style="color: var(--green); font-size: 13px; font-weight: 600;">↑ +2 150 zł w tym miesiącu</div>
+        </div>
+
+        <div class="stat-grid">
+            <div class="small-card">
+                <div class="label">Wpływy</div>
+                <div class="val" style="color: var(--green); font-size: 18px;">+8 200</div>
+            </div>
+            <div class="small-card">
+                <div class="label">Wydatki</div>
+                <div class="val" style="color: var(--red); font-size: 18px;">-3 450</div>
+            </div>
+        </div>
+
+        <h3 style="margin: 20px 0 12px;">Budżety kategorii</h3>
+        <div id="category-list"></div>
+    </section>
+
+    <section class="tab-content" id="tab-1">
+        <h3 style="margin-bottom: 16px;">Ostatnie transakcje</h3>
+        <div class="tx-list" id="transaction-list"></div>
+    </section>
+
+    <section class="tab-content" id="tab-2">
+        <h3 style="margin-bottom: 16px;">Strategie inwestycyjne</h3>
+        <div id="strategy-list"></div>
+    </section>
+</main>
+
+<button class="fab" onclick="alert('Nowy wydatek')">+</button>
+
+<nav class="tab-bar">
+    <button class="nav-item active" onclick="showTab(0, this)">
+        <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+        Portfel
+    </button>
+    <button class="nav-item" onclick="showTab(1, this)">
+        <svg viewBox="0 0 24 24"><path d="M13 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7l-7-4zm-1 14H8v-2h4v2zm3-4H8v-2h7v2zm0-4H8V7h7v2z"/></svg>
+        Historia
+    </button>
+    <button class="nav-item" onclick="showTab(2, this)">
+        <svg viewBox="0 0 24 24"><path d="M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z"/></svg>
+        Inwestycje
+    </button>
+</nav>
+
+<script>
+    // DANE APLIKACJI
+    const categories = [
+        { name: 'Jedzenie', icon: '🛒', spent: 1200, limit: 1500, color: 'var(--accent)' },
+        { name: 'Mieszkanie', icon: '🏠', spent: 2500, limit: 2500, color: '#3ec8f5' },
+        { name: 'Rozrywka', icon: '🍿', spent: 450, limit: 800, color: 'var(--red)' }
+    ];
+
+    const transactions = [
+        { name: 'Biedronka', cat: 'Jedzenie', date: 'Dzisiaj, 14:20', amount: -125.50, icon: '🛒' },
+        { name: 'Przelew: Wynagrodzenie', cat: 'Praca', date: 'Wczoraj', amount: 5200.00, icon: '💰' },
+        { name: 'Netflix', cat: 'Rozrywka', date: '2 kwietnia', amount: -43.00, icon: '🎬' },
+        { name: 'Orlen', cat: 'Transport', date: '1 kwietnia', amount: -210.00, icon: '🚗' }
+    ];
+
+    const strategies = [
+        { name: 'Globalny Spokój', risk: 'Niski', pnl: '+4.2%', desc: 'ETF na światowe akcje i obligacje.' },
+        { name: 'Krypto Ofensywa', risk: 'Wysoki', pnl: '-12.5%', desc: 'Strategia oparta o BTC i ETH.' }
+    ];
+
+    // RENDEROWANIE
+    function init() {
+        renderCategories();
+        renderTransactions();
+        renderStrategies();
+    }
+
+    function renderCategories() {
+        const container = document.getElementById('category-list');
+        container.innerHTML = categories.map(c => `
+            <div class="small-card" style="margin-bottom:12px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span>${c.icon} <b>${c.name}</b></span>
+                    <span class="val" style="font-size:14px;">${c.spent} / ${c.limit} zł</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: ${(c.spent/c.limit)*100}%; background: ${c.color}"></div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function renderTransactions() {
+        const container = document.getElementById('transaction-list');
+        container.innerHTML = transactions.map(t => `
+            <div class="tx-item">
+                <div class="tx-icon">${t.icon}</div>
+                <div class="tx-info">
+                    <div class="tx-name">${t.name}</div>
+                    <div class="tx-meta">${t.cat} • ${t.date}</div>
+                </div>
+                <div class="tx-amount" style="color: ${t.amount > 0 ? 'var(--green)' : 'var(--text)'}">
+                    ${t.amount > 0 ? '+' : ''}${t.amount.toFixed(2)} zł
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function renderStrategies() {
+        const container = document.getElementById('strategy-list');
+        container.innerHTML = strategies.map(s => `
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                    <span class="val" style="font-size:18px;">${s.name}</span>
+                    <span style="font-size:12px; padding:4px 8px; background:var(--surface2); border-radius:6px; color:var(--accent)">${s.risk}</span>
+                </div>
+                <p style="font-size:13px; color:var(--text-dim); margin-bottom:12px;">${s.desc}</p>
+                <div style="font-weight:bold; color: ${s.pnl.startsWith('+') ? 'var(--green)' : 'var(--red)'}">Wynik: ${s.pnl}</div>
+            </div>
+        `).join('');
+    }
+
+    function showTab(idx, btn) {
+        document.querySelectorAll('.tab-content').forEach((t, i) => t.classList.toggle('active', i === idx));
+        document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        window.scrollTo(0,0);
+    }
+
+    init();
+</script>
+</body>
+</html>
