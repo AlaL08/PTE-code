@@ -1,0 +1,2945 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FinPlan — Twój planer finansowy</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #161921;
+    --surface2: #1e2230;
+    --border: rgba(255,255,255,0.07);
+    --border-hover: rgba(255,255,255,0.15);
+    --text: #eef0f4;
+    --text-dim: #7a8099;
+    --text-dimmer: #454a5e;
+    --accent: #c8f53e;
+    --accent-dim: rgba(200,245,62,0.12);
+    --accent-glow: rgba(200,245,62,0.25);
+    --red: #ff5757;
+    --red-dim: rgba(255,87,87,0.12);
+    --green: #3effa3;
+    --green-dim: rgba(62,255,163,0.12);
+    --blue: #5c9bff;
+    --blue-dim: rgba(92,155,255,0.1);
+    --gold: #f0c93a;
+    --gold-dim: rgba(240,201,58,0.1);
+    --radius: 14px;
+    --radius-sm: 8px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* NOISE TEXTURE */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.6;
+  }
+
+  /* HEADER */
+  header {
+    padding: 28px 32px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .logo {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    letter-spacing: -0.5px;
+  }
+
+  .logo span {
+    color: var(--accent);
+  }
+
+  .header-date {
+    font-size: 12px;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* NAV */
+  nav {
+    display: flex;
+    gap: 4px;
+    padding: 20px 32px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  nav button {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 10px 16px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    margin-bottom: -1px;
+    letter-spacing: 0.2px;
+  }
+
+  nav button:hover { color: var(--text); }
+  nav button.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  /* MAIN LAYOUT */
+  main {
+    padding: 28px 32px;
+  }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* GRID */
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .grid-main { display: grid; grid-template-columns: 1fr 380px; gap: 20px; align-items: start; }
+
+  /* CARDS */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    transition: border-color 0.2s;
+  }
+
+  .card:hover { border-color: var(--border-hover); }
+
+  .card-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text-dimmer);
+    margin-bottom: 8px;
+  }
+
+  .card-value {
+    font-family: 'DM Serif Display', serif;
+    font-size: 32px;
+    letter-spacing: -1px;
+    line-height: 1;
+  }
+
+  .card-sub {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 6px;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 100px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .badge.up { background: var(--green-dim); color: var(--green); }
+  .badge.down { background: var(--red-dim); color: var(--red); }
+  .badge.neutral { background: var(--blue-dim); color: var(--blue); }
+
+  /* SECTION HEADER */
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .section-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 18px;
+    letter-spacing: -0.3px;
+  }
+
+  /* CATEGORY TABLE */
+  .cat-table { width: 100%; border-collapse: collapse; }
+  .cat-table th {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--text-dimmer);
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  .cat-table th:not(:first-child) { text-align: right; }
+
+  .cat-table td {
+    padding: 12px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  .cat-table td:not(:first-child) { text-align: right; }
+  .cat-table tr:last-child td { border-bottom: none; }
+  .cat-table tr:hover td { background: rgba(255,255,255,0.015); }
+  .budget-focus {
+    border-color: rgba(200,245,62,0.28);
+    box-shadow: 0 0 0 1px rgba(200,245,62,0.08), 0 16px 30px rgba(0,0,0,0.25);
+    background: linear-gradient(180deg, rgba(200,245,62,0.05) 0%, var(--surface) 26%);
+  }
+  .budget-focus .cat-table th {
+    background: rgba(0,0,0,0.15);
+  }
+  .budget-legend {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .type-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 10px;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .type-pill.income {
+    color: var(--green);
+    background: var(--green-dim);
+    border: 1px solid rgba(62,255,163,0.35);
+  }
+  .type-pill.expense {
+    color: var(--red);
+    background: var(--red-dim);
+    border: 1px solid rgba(255,87,87,0.3);
+  }
+
+  .cat-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-sm);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    margin-right: 10px;
+    flex-shrink: 0;
+  }
+
+  .cat-name-cell {
+    display: flex;
+    align-items: center;
+  }
+
+  .ticker-change {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+  }
+
+  .change-up { color: var(--green); }
+  .change-down { color: var(--red); }
+  .change-neutral { color: var(--text-dim); }
+
+  .sparkline { width: 60px; height: 24px; }
+
+  /* MONO VALUES */
+  .mono {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+  }
+
+  /* PROGRESS BAR */
+  .progress-wrap {
+    height: 4px;
+    background: var(--surface2);
+    border-radius: 2px;
+    margin-top: 4px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.5s ease;
+  }
+
+  /* FORM SECTION */
+  .form-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  input[type=text], input[type=number], select {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    padding: 9px 12px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  input[type=text]:focus, input[type=number]:focus, select:focus {
+    border-color: var(--accent);
+  }
+  select { cursor: pointer; }
+  select option { background: var(--surface2); }
+
+  .btn {
+    background: var(--accent);
+    color: #0d0f14;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 9px 18px;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+    white-space: nowrap;
+  }
+  .btn:hover { opacity: 0.9; }
+  .btn:active { transform: scale(0.98); }
+
+  .btn-ghost {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: var(--radius-sm);
+    padding: 7px 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-ghost:hover { border-color: var(--border-hover); color: var(--text); }
+
+  /* ADD CATEGORY PANEL */
+  .collapsible-panel {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+  .collapsible-trigger {
+    width: 100%;
+    background: var(--surface);
+    border: none;
+    color: var(--text-dim);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 12px 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: color 0.2s;
+    letter-spacing: 0.3px;
+  }
+  .collapsible-trigger:hover { color: var(--text); }
+  .collapsible-trigger .arrow {
+    margin-left: auto;
+    transition: transform 0.2s;
+    font-size: 10px;
+  }
+  .collapsible-trigger.open .arrow { transform: rotate(180deg); }
+
+  .collapsible-body {
+    display: none;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 16px 20px;
+  }
+  .collapsible-body.open { display: block; }
+
+  /* TRANSACTION HISTORY */
+  .tx-list { display: flex; flex-direction: column; gap: 2px; }
+  .tx-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    transition: background 0.15s;
+  }
+  .tx-item:hover { background: var(--surface2); }
+  .tx-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .tx-cat { flex: 1; font-size: 13px; }
+  .tx-date { font-size: 11px; color: var(--text-dimmer); font-family: 'JetBrains Mono', monospace; }
+  .tx-amount { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; }
+  .tx-meta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-left: auto;
+  }
+
+  .balance-history {
+    display: none;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .balance-history.open { display: block; }
+  .balance-history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .balance-history-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .balance-history-row .mono {
+    font-size: 12px;
+  }
+  .expense-split {
+    display: grid;
+    grid-template-columns: 1fr 150px;
+    gap: 14px;
+    align-items: center;
+  }
+  .expense-pie-wrap {
+    display: flex;
+    justify-content: center;
+  }
+  .expense-pie {
+    width: 132px;
+    height: 132px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    position: relative;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
+  }
+  .expense-pie::after {
+    content: '';
+    position: absolute;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--surface);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border: 1px solid var(--border);
+  }
+  .range-switch {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .range-switch .btn-ghost {
+    padding: 5px 10px;
+    font-size: 11px;
+  }
+
+  /* INVESTMENT STRATEGIES */
+  .strategy-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+
+  .strategy-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .strategy-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    transition: opacity 0.2s;
+    opacity: 0;
+  }
+  .strategy-card:hover { border-color: var(--border-hover); transform: translateY(-2px); }
+  .strategy-card:hover::before { opacity: 1; }
+
+  .strategy-card.selected {
+    border-color: var(--accent);
+    background: linear-gradient(135deg, var(--surface) 0%, rgba(200,245,62,0.04) 100%);
+  }
+  .strategy-card.selected::before { background: var(--accent); opacity: 1; }
+
+  .strat-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .strat-name {
+    font-family: 'DM Serif Display', serif;
+    font-size: 17px;
+  }
+  .strat-risk {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 100px;
+    letter-spacing: 0.5px;
+  }
+  .risk-low { background: var(--green-dim); color: var(--green); }
+  .risk-med { background: var(--gold-dim); color: var(--gold); }
+  .risk-high { background: var(--red-dim); color: var(--red); }
+
+  .strat-desc {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+    line-height: 1.6;
+  }
+
+  /* DONUT / PIE CHART */
+  .alloc-bars { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+  .alloc-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+  }
+  .alloc-label { width: 130px; color: var(--text-dim); flex-shrink: 0; }
+  .alloc-bar-wrap { flex: 1; height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+  .alloc-bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+  .alloc-pct { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-dim); width: 35px; text-align: right; }
+
+  .strat-compare { font-size: 11px; color: var(--text-dimmer); margin-top: 12px; }
+
+  /* STRATEGY DETAIL PANEL */
+  .strategy-detail {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-top: 20px;
+  }
+
+  /* DIFFICULTY DOTS */
+  .diff-dots { display: flex; gap: 4px; }
+  .diff-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--text-dimmer);
+  }
+  .diff-dot.filled { background: var(--accent); }
+
+  /* ANALYSIS CHARTS */
+  .bar-chart { display: flex; align-items: flex-end; gap: 6px; height: 80px; margin-top: 12px; }
+  .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .bar-fill {
+    width: 100%;
+    border-radius: 3px 3px 0 0;
+    transition: height 0.5s ease;
+    min-height: 2px;
+  }
+  .bar-lbl { font-size: 9px; color: var(--text-dimmer); font-family: 'JetBrains Mono', monospace; text-align: center; }
+
+  /* DONUT SVG */
+  .donut-wrap { display: flex; align-items: center; gap: 20px; }
+  .donut-legend { display: flex; flex-direction: column; gap: 6px; }
+  .donut-legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-dim); }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  /* SEPARATOR */
+  .sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+  /* EMPTY STATE */
+  .empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-dimmer);
+    font-size: 13px;
+  }
+  .empty-icon { font-size: 32px; margin-bottom: 10px; }
+
+  /* TOTAL ROW */
+  .total-row { background: var(--accent-dim); }
+  .total-row td { font-weight: 600; color: var(--accent) !important; }
+
+  /* INVEST TAB */
+  .invest-header {
+    margin-bottom: 28px;
+  }
+  .invest-header h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 28px;
+    letter-spacing: -0.5px;
+    margin-bottom: 6px;
+  }
+  .invest-header p {
+    color: var(--text-dim);
+    font-size: 13px;
+  }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* RESPONSIVE */
+  @media (max-width: 900px) {
+    .grid-main { grid-template-columns: 1fr; }
+    .expense-split { grid-template-columns: 1fr; }
+    .expense-pie-wrap { justify-content: flex-start; }
+    main { padding: 20px 16px; }
+    header { padding: 20px 16px 0; }
+    nav { padding: 16px 16px 0; }
+  }
+  @media (max-width: 600px) {
+    .grid-3 { grid-template-columns: 1fr; }
+    .grid-2 { grid-template-columns: 1fr; }
+  }
+
+  /* ANIMATIONS */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .tab-content.active { animation: fadeIn 0.25s ease; }
+
+  /* INVEST CALLOUT */
+  .callout {
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    background: var(--accent-dim);
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 20px;
+    line-height: 1.6;
+  }
+  .callout strong { color: var(--text); }
+
+  /* INVESTMENTS */
+  .invest-split { display:grid; grid-template-columns: 1fr 380px; gap: 20px; align-items:start; }
+  .chip {
+    display:inline-flex; align-items:center; gap:6px;
+    font-size:11px; color:var(--text-dim);
+    padding:4px 10px; border-radius:100px;
+    background:var(--surface2); border:1px solid var(--border);
+    font-family:'JetBrains Mono', monospace;
+  }
+  .inv-table { width:100%; border-collapse: collapse; }
+  .inv-table th {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--text-dimmer);
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  .inv-table th:not(:first-child) { text-align:right; }
+  .inv-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  .inv-table td:not(:first-child) { text-align:right; }
+  .inv-table tr:last-child td { border-bottom:none; }
+  .inv-table tr:hover td { background: rgba(255,255,255,0.015); }
+  .pill-btn {
+    background:none; border:1px solid var(--border);
+    color:var(--text-dim);
+    font-size:12px; font-weight:600;
+    border-radius:100px;
+    padding:6px 10px;
+    cursor:pointer;
+    transition: all 0.2s;
+    font-family:'DM Sans', sans-serif;
+  }
+  .pill-btn:hover { border-color: var(--border-hover); color:var(--text); }
+  .pill-btn.buy { border-color: rgba(62,255,163,0.35); color: var(--green); }
+  .pill-btn.sell { border-color: rgba(255,87,87,0.35); color: var(--red); }
+  .muted { color: var(--text-dim); }
+  .hr-soft { border:none; border-top:1px solid var(--border); margin: 14px 0; }
+  .small { font-size:12px; }
+
+  /* LOGIN ICON BUTTON */
+  .login-icon-btn {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    color: var(--text-dim);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 6px 14px 6px 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .login-icon-btn:hover { border-color: var(--border-hover); color: var(--text); }
+  .login-icon-btn.logged-in { border-color: rgba(200,245,62,0.3); color: var(--accent); }
+
+  /* LOGIN MODAL */
+  .login-tab {
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .login-tab.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+
+  @keyframes modalIn {
+    from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  /* XTB LINK BUTTON */
+  .btn-xtb-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(240,201,58,0.1);
+    border: 1px solid rgba(240,201,58,0.3);
+    border-radius: 100px;
+    color: var(--gold);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 5px 11px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .btn-xtb-link:hover { background: rgba(240,201,58,0.18); border-color: rgba(240,201,58,0.5); }
+  .btn-xtb-link svg { width: 10px; height: 10px; flex-shrink: 0; }
+
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Fin<span>Plan</span></div>
+  <div style="display:flex; align-items:center; gap:16px;">
+    <div class="header-date" id="headerDate"></div>
+    <button class="login-icon-btn" onclick="openLoginModal()" title="Zaloguj się / Konto">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span id="loginBtnLabel">Zaloguj</span>
+    </button>
+  </div>
+</header>
+
+<!-- ===== LOGIN MODAL ===== -->
+<div id="loginModal" style="display:none; position:fixed; inset:0; z-index:9000; background:rgba(13,15,20,0.85); backdrop-filter:blur(12px); align-items:center; justify-content:center;">
+  <div style="width:400px; max-width:92vw; background:var(--surface); border:1px solid var(--border-hover); border-radius:18px; padding:32px; position:relative; animation:modalIn 0.2s ease;">
+    <button onclick="closeLoginModal()" style="position:absolute; top:16px; right:16px; background:none; border:none; color:var(--text-dim); cursor:pointer; font-size:18px; line-height:1;">✕</button>
+
+    <!-- tabs -->
+    <div style="display:flex; background:var(--surface2); border-radius:8px; padding:3px; margin-bottom:24px; gap:2px;">
+      <button class="login-tab active" id="ltab-login" onclick="switchLoginTab('login')">Logowanie</button>
+      <button class="login-tab" id="ltab-reg" onclick="switchLoginTab('reg')">Rejestracja</button>
+    </div>
+
+    <!-- login form -->
+    <div id="lform-login">
+      <div id="loginErr" style="display:none; background:var(--red-dim); border:1px solid rgba(255,87,87,0.2); border-radius:6px; color:var(--red); padding:9px 12px; font-size:12px; margin-bottom:12px;"></div>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div>
+          <div style="font-size:10px; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:var(--text-dimmer); margin-bottom:5px;">E-mail</div>
+          <input type="email" id="lEmail" placeholder="jan@kowalski.pl" style="width:100%;" onkeydown="if(event.key==='Enter')doLogin()">
+        </div>
+        <div>
+          <div style="font-size:10px; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:var(--text-dimmer); margin-bottom:5px;">Hasło</div>
+          <input type="password" id="lPass" placeholder="••••••••" style="width:100%;" onkeydown="if(event.key==='Enter')doLogin()">
+        </div>
+        <button class="btn" onclick="doLogin()" style="width:100%; margin-top:4px;">Zaloguj się</button>
+        <div style="text-align:center; font-size:11px; color:var(--text-dimmer);">lub</div>
+        <button onclick="doDemo()" style="background:none; border:1px solid var(--border); color:var(--text-dim); font-family:'DM Sans',sans-serif; font-size:12px; font-weight:500; border-radius:var(--radius-sm); padding:8px; cursor:pointer; width:100%; transition:all 0.2s;" onmouseover="this.style.borderColor='var(--border-hover)'; this.style.color='var(--text)'" onmouseout="this.style.borderColor='var(--border)'; this.style.color='var(--text-dim)'">▶ Kontynuuj jako demo</button>
+      </div>
+    </div>
+
+    <!-- register form -->
+    <div id="lform-reg" style="display:none;">
+      <div id="regErr" style="display:none; background:var(--red-dim); border:1px solid rgba(255,87,87,0.2); border-radius:6px; color:var(--red); padding:9px 12px; font-size:12px; margin-bottom:12px;"></div>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div>
+          <div style="font-size:10px; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:var(--text-dimmer); margin-bottom:5px;">Imię i nazwisko</div>
+          <input type="text" id="rName" placeholder="Jan Kowalski" style="width:100%;">
+        </div>
+        <div>
+          <div style="font-size:10px; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:var(--text-dimmer); margin-bottom:5px;">E-mail</div>
+          <input type="email" id="rEmail" placeholder="jan@kowalski.pl" style="width:100%;">
+        </div>
+        <div>
+          <div style="font-size:10px; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:var(--text-dimmer); margin-bottom:5px;">Hasło (min. 6 znaków)</div>
+          <input type="password" id="rPass" placeholder="••••••••" style="width:100%;" onkeydown="if(event.key==='Enter')doRegister()">
+        </div>
+        <button class="btn" onclick="doRegister()" style="width:100%; margin-top:4px;">Utwórz konto</button>
+      </div>
+    </div>
+
+    <div style="text-align:center; margin-top:18px; font-size:11px; color:var(--text-dimmer);">Dane przechowywane lokalnie w przeglądarce</div>
+  </div>
+</div>
+
+<nav>
+  <button class="active" onclick="switchTab(0)">Budżet</button>
+  <button onclick="switchTab(1)">Transakcje</button>
+  <button onclick="switchTab(2)">Inwestycje</button>
+</nav>
+
+<main>
+
+<!-- ===== TAB 0: BUDŻET ===== -->
+<div class="tab-content active" id="tab0">
+
+  <div class="grid-3" id="summaryCards">
+    <!-- filled by JS -->
+  </div>
+
+  <div class="grid-main">
+    <div>
+      <div class="section-header">
+        <div class="section-title">Kategorie budżetowe</div>
+        <div class="budget-legend">
+          <span class="type-pill income">● dochód</span>
+          <span class="type-pill expense">● wydatek</span>
+        </div>
+      </div>
+      <div class="card budget-focus" style="padding:0; overflow:hidden;">
+        <table class="cat-table">
+          <thead>
+            <tr>
+              <th>Kategoria</th>
+              <th>Planowany</th>
+              <th>Realny</th>
+              <th>Zmiana</th>
+              <th>Realizacja</th>
+            </tr>
+          </thead>
+          <tbody id="catTableBody"></tbody>
+        </table>
+      </div>
+
+      <!-- Szacowane wartości - edycja inline -->
+      <div style="margin-top:10px; font-size:11px; color:var(--text-dimmer); padding:0 4px;">
+        Kliknij wartość w kolumnie "Planowany" aby ją edytować.
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div>
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-label">Bilans miesięczny</div>
+        <div class="card-value" id="balanceValue">0 zł</div>
+        <div class="card-sub" id="balanceSub">Brak transakcji</div>
+        <button class="btn-ghost" style="margin-top:12px;" onclick="toggleBalanceHistory()">Historia bilansów</button>
+        <div class="balance-history" id="balanceHistoryWrap">
+          <div class="balance-history-list" id="balanceHistoryList"></div>
+          <div class="card-sub">Suma historyczna: <span class="mono" id="balanceHistoryTotal">0 zł</span></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-label" style="margin-bottom:12px;">Rozkład wydatków</div>
+        <div id="expenseBreakdown"><div class="empty" style="padding:20px;"><div class="empty-icon">📊</div>Brak danych</div></div>
+      </div>
+
+      <!-- ADD TRANSACTION QUICK -->
+      <div class="card">
+        <div class="card-label" style="margin-bottom:12px;">Szybka transakcja</div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <input type="number" id="quickAmount" placeholder="Kwota (zł)" style="width:100%;">
+          <select id="quickCat" style="width:100%;"><option value="">— wybierz kategorię —</option></select>
+          <button class="btn" onclick="addTransaction()" style="width:100%;">Dodaj transakcję</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COLLAPSIBLE: ADD CATEGORY -->
+  <div class="collapsible-panel">
+    <button class="collapsible-trigger" onclick="togglePanel(this)">
+      <span>⚙</span> Zarządzaj kategoriami
+      <span class="arrow">▼</span>
+    </button>
+    <div class="collapsible-body">
+      <div class="form-row">
+        <input type="text" id="catName" placeholder="Nazwa kategorii">
+        <input type="text" id="catIcon" placeholder="Emoji (np. 🛒)" style="width:80px;">
+        <select id="catType">
+          <option value="wydatek">Wydatek</option>
+          <option value="dochód">Dochód</option>
+        </select>
+        <button class="btn" onclick="addCategory()">Dodaj kategorię</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== TAB 1: TRANSAKCJE ===== -->
+<div class="tab-content" id="tab1">
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-label">Suma wpływów</div>
+      <div class="card-value" id="totalIncome" style="color:var(--green)">0 zł</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Suma wydatków</div>
+      <div class="card-value" id="totalExpense" style="color:var(--red)">0 zł</div>
+    </div>
+  </div>
+
+  <!-- ANALYSIS -->
+  <div class="grid-2" style="margin-bottom:24px;">
+    <div class="card">
+      <div class="section-header" style="margin-bottom:12px;">
+        <div class="card-label" style="margin-bottom:0;">Wydatki wg kategorii</div>
+        <div class="range-switch">
+          <button class="btn-ghost" onclick="setTxRange('week', this)">Tydzień</button>
+          <button class="btn-ghost active-filter" onclick="setTxRange('month', this)">Miesiąc</button>
+          <button class="btn-ghost" onclick="setTxRange('3m', this)">3M</button>
+          <button class="btn-ghost" onclick="setTxRange('6m', this)">6M</button>
+          <button class="btn-ghost" onclick="setTxRange('year', this)">Rok</button>
+        </div>
+      </div>
+      <div id="catBreakdownBars"></div>
+    </div>
+    <div class="card">
+      <div class="card-label" style="margin-bottom:12px;">Ostatnia aktywność</div>
+      <div id="txLastActivity"></div>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="section-header">
+    <div class="section-title">Historia transakcji</div>
+    <button class="btn-ghost" onclick="clearTransactions()">Wyczyść</button>
+  </div>
+  <div class="card" style="padding:12px;">
+    <div class="tx-list" id="txList">
+      <div class="empty"><div class="empty-icon">💸</div>Brak transakcji</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== TAB 2: INWESTYCJE ===== -->
+<div class="tab-content" id="tab2">
+
+  <div class="invest-header">
+    <h2>Inwestycje: obligacje i akcje</h2>
+    <p>Symulator inwestowania: zasil konto z budżetu, kupuj/sprzedawaj instrumenty, obserwuj portfel i historię transakcji.</p>
+  </div>
+
+  <div class="callout">
+    <strong>Uwaga:</strong> Poniższe informacje mają charakter edukacyjny. Przed podjęciem decyzji inwestycyjnych skonsultuj się z licencjonowanym doradcą finansowym.
+  </div>
+
+  <div class="grid-3" id="invSummaryCards" style="margin-bottom:18px;"></div>
+
+  <div class="invest-split">
+    <div>
+      <div class="section-header">
+        <div class="section-title">Rynek</div>
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <span class="chip" id="invMarketStamp">ceny: —</span>
+          <button class="btn-ghost" onclick="invRefreshMarket()">Odśwież ceny</button>
+        </div>
+      </div>
+
+      <div class="card" style="padding:0; overflow:hidden; margin-bottom:16px;">
+        <div style="display:flex; gap:8px; padding:12px; border-bottom:1px solid var(--border); flex-wrap:wrap;">
+          <button class="btn-ghost active-filter" id="invTabBtnStocks" onclick="invSwitchMarketTab('stocks')">Akcje</button>
+          <button class="btn-ghost" id="invTabBtnBonds" onclick="invSwitchMarketTab('bonds')">Obligacje</button>
+        </div>
+
+        <div id="invMarketStocksWrap">
+          <table class="inv-table">
+            <thead>
+              <tr>
+                <th>Spółka</th>
+                <th>Kurs</th>
+                <th>Zmiana</th>
+                <th>Akcja</th>
+              </tr>
+            </thead>
+            <tbody id="invStocksBody"></tbody>
+          </table>
+        </div>
+
+        <div id="invMarketBondsWrap" style="display:none;">
+          <table class="inv-table">
+            <thead>
+              <tr>
+                <th>Obligacja</th>
+                <th>Oprocentowanie</th>
+                <th>Typ</th>
+                <th>Czas trwania</th>
+                <th>Kara za wcześniejszy wykup</th>
+                <th>Akcja</th>
+              </tr>
+            </thead>
+            <tbody id="invBondsBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="section-header">
+        <div class="section-title">Portfel</div>
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <button class="btn-ghost" onclick="invReset()">Reset portfela</button>
+        </div>
+      </div>
+
+      <div class="card" style="padding:0; overflow:hidden;">
+        <table class="inv-table">
+          <thead>
+            <tr>
+              <th>Instrument</th>
+              <th>Ilość</th>
+              <th>Śr. cena</th>
+              <th>Wartość</th>
+              <th>P/L</th>
+              <th>Akcja</th>
+            </tr>
+          </thead>
+          <tbody id="invPortfolioBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div>
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-label">Zasil konto inwestycyjne z budżetu</div>
+        <div class="small muted" style="margin-top:8px; line-height:1.6;">
+          To doda wydatek w kategorii „Inwestycje” w zakładce Budżet/Transakcje i jednocześnie zwiększy gotówkę na koncie inwestycyjnym.
+        </div>
+        <hr class="hr-soft">
+        <div class="form-row">
+          <input type="number" id="invTopupAmount" placeholder="Kwota (zł)" style="flex:1; min-width:160px;">
+          <button class="btn" onclick="invTopUpFromBudget()">Zasil</button>
+        </div>
+        <div class="small muted" style="margin-top:10px;">
+          Suma wpłat z budżetu: <span class="mono" id="invContribTotal">0 zł</span>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-label">Szybkie zlecenie</div>
+        <div class="small muted" style="margin-top:8px;">Kupno/sprzedaż po aktualnej cenie z tabeli „Rynek”.</div>
+        <hr class="hr-soft">
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <select id="invOrderInstrument"></select>
+          <div class="form-row">
+            <select id="invOrderSide" style="min-width:140px;">
+              <option value="buy">Kup</option>
+              <option value="sell">Sprzedaj</option>
+            </select>
+            <input type="number" id="invOrderQty" placeholder="Ilość" step="1" min="0" style="flex:1; min-width:120px;">
+          </div>
+          <button class="btn" onclick="invSubmitOrder()" style="width:100%;">Wykonaj zlecenie</button>
+          <div class="small muted" id="invOrderHint"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-header" style="margin-bottom:12px;">
+          <div class="card-label" style="margin-bottom:0;">Historia inwestycji</div>
+          <button class="btn-ghost" onclick="invClearHistory()">Wyczyść</button>
+        </div>
+        <div class="tx-list" id="invTxList">
+          <div class="empty"><div class="empty-icon">🧾</div>Brak transakcji inwestycyjnych</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="sep" style="margin: 26px 0;">
+
+  <div class="invest-header">
+    <h2>Strategie inwestycyjne</h2>
+    <p>Poniżej nadal masz część edukacyjną: modele alokacji kapitału i profile ryzyka.</p>
+  </div>
+
+  <!-- FILTER BUTTONS -->
+  <div style="display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap;">
+    <button class="btn-ghost active-filter" onclick="filterStrategies('all', this)">Wszystkie</button>
+    <button class="btn-ghost" onclick="filterStrategies('low', this)">Niskie ryzyko</button>
+    <button class="btn-ghost" onclick="filterStrategies('medium', this)">Średnie ryzyko</button>
+    <button class="btn-ghost" onclick="filterStrategies('high', this)">Wysokie ryzyko</button>
+  </div>
+
+  <div class="strategy-grid" id="strategyGrid"></div>
+
+  <div class="strategy-detail" id="strategyDetail" style="display:none; margin-top:20px;"></div>
+
+  <!-- KALKULATOR OSZCZĘDNOŚCI — pod wybraną strategią -->
+  <div class="card" style="margin-top:24px; border-color: rgba(200,245,62,0.25); background: linear-gradient(180deg, rgba(200,245,62,0.04) 0%, var(--surface) 40%);" id="savingsCalcCard">
+    <div style="display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:20px;">
+      <div>
+        <div class="section-title">Kalkulator alokacji oszczędności</div>
+        <div class="card-sub" style="margin-top:4px;">Podaj kwotę i wybierz strategię — otrzymasz konkretny plan zakupu ETF-ów z linkami do XTB</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+        <input type="number" id="savingsAmount" placeholder="Kwota (zł)" style="width:160px;" oninput="calcSavingsAlloc()">
+        <span style="font-size:13px; color:var(--text-dim);">zł</span>
+      </div>
+    </div>
+    <div id="savingsAllocResult" style="display:none;">
+      <hr style="border:none; border-top:1px solid var(--border); margin-bottom:16px;">
+      <div id="savingsAllocTable"></div>
+      <div style="margin-top:12px; padding:10px 14px; background:var(--surface2); border-radius:var(--radius-sm); font-size:12px; color:var(--text-dim); line-height:1.6;">
+        ⚠️ <strong>Uwaga edukacyjna:</strong> Powyższy plan ma charakter poglądowy. Liczba jednostek jest przybliżona (zależy od aktualnych kursów). Przed inwestowaniem skonsultuj się z doradcą finansowym. Inwestowanie wiąże się z ryzykiem utraty kapitału.
+      </div>
+    </div>
+    <div id="savingsAllocEmpty" style="text-align:center; padding:24px 0; color:var(--text-dimmer); font-size:13px;">
+      👆 Wybierz strategię powyżej i wpisz kwotę, którą chcesz zainwestować
+    </div>
+  </div>
+
+</div>
+
+</main>
+
+<script>
+// ==================== STATE ====================
+let categories = [
+  { id: 1, name: 'Wynagrodzenie', icon: '💼', type: 'dochód', budget: 4500 },
+  { id: 2, name: 'Inne wpływy',   icon: '💰', type: 'dochód', budget: 500  },
+  { id: 3, name: 'Mieszkanie',    icon: '🏠', type: 'wydatek', budget: 1200 },
+  { id: 4, name: 'Jedzenie',      icon: '🛒', type: 'wydatek', budget: 800  },
+  { id: 5, name: 'Transport',     icon: '🚗', type: 'wydatek', budget: 300  },
+  { id: 6, name: 'Rozrywka',      icon: '🎬', type: 'wydatek', budget: 200  },
+  { id: 7, name: 'Zdrowie',       icon: '💊', type: 'wydatek', budget: 150  },
+  { id: 8, name: 'Inwestycje',    icon: '📈', type: 'wydatek', budget: 600  },
+];
+
+let transactions = [
+  { id: 1, catId: 1, amount: 4500, date: new Date(2026,3,1), note: '' },
+  { id: 2, catId: 3, amount: -1200, date: new Date(2026,3,2), note: '' },
+  { id: 3, catId: 4, amount: -320, date: new Date(2026,3,3), note: '' },
+  { id: 4, catId: 5, amount: -180, date: new Date(2026,3,4), note: '' },
+  { id: 5, catId: 8, amount: -600, date: new Date(2026,3,5), note: '' },
+  { id: 6, catId: 4, amount: -210, date: new Date(2026,3,6), note: '' },
+  { id: 7, catId: 2, amount: 300,  date: new Date(2026,3,7), note: '' },
+  { id: 8, catId: 6, amount: -85,  date: new Date(2026,3,8), note: '' },
+];
+
+let selectedStrategy = null;
+let nextId = 100;
+let txRange = 'month';
+
+// ==================== INVESTMENTS STATE ====================
+const INVEST_LS_KEY = 'finplan.v1';
+
+// ETF tickers dostępne w XTB (notowania na żywo via Yahoo Finance)
+const ETF_TICKERS = [
+  { id: 'VWCE.DE',  name: 'Vanguard FTSE All-World', currency: 'EUR', category: 'akcje-globalne', xtb: 'https://www.xtb.com/pl/oferta/rynki/etf/vwce-etf' },
+  { id: 'CSPX.L',   name: 'iShares Core S&P 500',   currency: 'USD', category: 'akcje-usa',      xtb: 'https://www.xtb.com/pl/oferta/rynki/etf/cspx-etf' },
+  { id: 'IWDA.L',   name: 'iShares Core MSCI World', currency: 'USD', category: 'akcje-globalne', xtb: 'https://www.xtb.com/pl/oferta/rynki/etf/iwda-etf' },
+  { id: 'EIMI.L',   name: 'iShares Emerging Markets', currency: 'USD', category: 'em',            xtb: 'https://www.xtb.com/pl/oferta/rynki/etf/eimi-etf' },
+  { id: 'IEGA.L',   name: 'iShares Euro Govt Bond',  currency: 'USD', category: 'obligacje',      xtb: 'https://www.xtb.com/pl/oferta/rynki/etf/iega-etf' },
+  { id: 'AGGH.L',   name: 'iShares Global Agg Bond', currency: 'USD', category: 'obligacje',      xtb: 'https://www.xtb.com/pl/oferta/rynki/etf/aggh-etf' },
+  { id: 'IGIL.L',   name: 'iShares Global Infl.Lnk', currency: 'USD', category: 'obligacje',      xtb: 'https://www.xtb.com/pl/oferta/rynki/etf' },
+  { id: 'SGLD.L',   name: 'iShares Physical Gold',   currency: 'USD', category: 'zloto',          xtb: 'https://www.xtb.com/pl/oferta/rynki/etf/sgld-etf' },
+  { id: 'IQQQ.DE',  name: 'iShares Nasdaq 100',      currency: 'EUR', category: 'akcje-usa',      xtb: 'https://www.xtb.com/pl/oferta/rynki/etf/iqqq-etf' },
+  { id: 'WSML.L',   name: 'iShares World Small Cap', currency: 'USD', category: 'smallcap',       xtb: 'https://www.xtb.com/pl/oferta/rynki/etf' },
+  { id: 'LYLT.L',   name: 'Amundi US Treasury Long', currency: 'USD', category: 'obligacje',      xtb: 'https://www.xtb.com/pl/oferta/rynki/etf' },
+  { id: 'SXRL.L',   name: 'iShares $ Treasury 7-10yr', currency: 'USD', category: 'obligacje',   xtb: 'https://www.xtb.com/pl/oferta/rynki/etf' },
+];
+
+const defaultMarket = {
+  lastUpdated: null,
+  stocks: ETF_TICKERS.map(e => ({
+    id: e.id, name: e.name, currency: e.currency, price: 100, prev: 100,
+    category: e.category, xtb: e.xtb, isEtf: true,
+  })),
+  bonds: [
+    {
+      id: 'OTS0426', name: 'OTS — Oszczędnościowe Trzymiesięczne', currency: 'PLN', price: 100.00,
+      couponPct: 5.00, maturity: 'lip 2026', prev: 100.00,
+      type: 'stałe', duration: '3 miesiące',
+      earlyPenalty: 'brak możliwości wcześniejszego wykupu (wyjątek: śmierć posiadacza)',
+      desc: 'Oprocentowanie stałe 5,00% w skali roku. Minimalna kwota 100 zł. Sprzedaż wyłącznie przez PKO BP.'
+    },
+    {
+      id: 'ROR0426', name: 'ROR — Roczne Oszczędnościowe', currency: 'PLN', price: 100.00,
+      couponPct: 5.75, maturity: 'kwi 2027', prev: 100.00,
+      type: 'zmienne (WIBOR)', duration: '1 rok',
+      earlyPenalty: 'opłata 0,50 zł za każdą obligację (0,50% nominału)',
+      desc: 'Oprocentowanie zmienne: w 1. miesiącu 5,75%, potem WIBOR 3M. Odsetki wypłacane miesięcznie. Min. 100 zł.'
+    },
+    {
+      id: 'DOR0426', name: 'DOR — Dwuletnie Oszczędnościowe', currency: 'PLN', price: 100.00,
+      couponPct: 5.85, maturity: 'kwi 2028', prev: 100.00,
+      type: 'zmienne (WIBOR)', duration: '2 lata',
+      earlyPenalty: 'opłata 0,70 zł za obligację (0,70% nominału)',
+      desc: 'Oprocentowanie zmienne: w 1. miesiącu 5,85%, potem WIBOR 3M + 0,10%. Odsetki miesięczne. Min. 100 zł.'
+    },
+    {
+      id: 'TOS0426', name: 'TOS — Trzymiesięczne Oszczędnościowe Stałe', currency: 'PLN', price: 100.00,
+      couponPct: 5.00, maturity: 'lip 2026', prev: 100.00,
+      type: 'stałe', duration: '3 miesiące',
+      earlyPenalty: 'brak wcześniejszego wykupu',
+      desc: 'Nowa edycja obligacji 3-miesięcznych ze stałym oprocentowaniem 5,00% p.a. Min. 100 zł.'
+    },
+    {
+      id: 'COI0426', name: 'COI — Czteroletnie Indeksowane Inflacją', currency: 'PLN', price: 100.00,
+      couponPct: 6.10, maturity: 'kwi 2030', prev: 100.00,
+      type: 'inflacja + marża', duration: '4 lata',
+      earlyPenalty: 'opłata 2,00 zł za obligację (2,00% nominału)',
+      desc: 'W 1. roku oprocentowanie 6,10%, w kolejnych: inflacja CPI + 1,50% marży. Odsetki roczne. Ochrona przed inflacją.'
+    },
+    {
+      id: 'EDO0426', name: 'EDO — Dziesięcioletnie Emerytalne', currency: 'PLN', price: 100.00,
+      couponPct: 6.25, maturity: 'kwi 2036', prev: 100.00,
+      type: 'inflacja + marża', duration: '10 lat',
+      earlyPenalty: 'opłata 2,00 zł za obligację po 1. roku; brak kary w 1. roku',
+      desc: 'W 1. roku 6,25%, potem inflacja CPI + 1,75% marży. Odsetki kapitalizowane (brak wypłat). Najlepsza ochrona długoterminowa.'
+    },
+    {
+      id: 'ROS0426', name: 'ROS — Sześcioletnie Rodzina na Start', currency: 'PLN', price: 100.00,
+      couponPct: 6.50, maturity: 'kwi 2032', prev: 100.00,
+      type: 'inflacja + marża (500+/800+)', duration: '6 lat',
+      earlyPenalty: 'opłata 1,00 zł za obligację (1,00% nominału)',
+      desc: 'Dostępne wyłącznie dla beneficjentów 500+/800+. W 1. roku 6,50%, potem inflacja + 1,75%. Min. 100 zł, max. 200 szt./rok.'
+    },
+    {
+      id: 'ROD0426', name: 'ROD — Dwunastoletnie Rodzina na Start', currency: 'PLN', price: 100.00,
+      couponPct: 6.75, maturity: 'kwi 2038', prev: 100.00,
+      type: 'inflacja + marża (500+/800+)', duration: '12 lat',
+      earlyPenalty: 'opłata 2,00 zł za obligację (2,00% nominału)',
+      desc: 'Dla beneficjentów 500+/800+. W 1. roku 6,75%, potem inflacja + 2,00%. Odsetki kapitalizowane. Najdłuższy horyzont.'
+    },
+  ],
+};
+
+let inv = {
+  walletPLN: 0,
+  market: structuredClone(defaultMarket),
+  holdings: {},
+  invTx: [],
+};
+
+function saveAll() {
+  const payload = {
+    categories,
+    transactions: transactions.map(t => ({ ...t, date: t.date instanceof Date ? t.date.toISOString() : t.date })),
+    nextId,
+    selectedStrategy,
+    inv,
+  };
+  localStorage.setItem(INVEST_LS_KEY, JSON.stringify(payload));
+}
+
+function loadAll() {
+  const raw = localStorage.getItem(INVEST_LS_KEY);
+  if (!raw) return;
+  try {
+    const data = JSON.parse(raw);
+    if (Array.isArray(data.categories)) categories = data.categories;
+    if (Array.isArray(data.transactions)) transactions = data.transactions.map(t => ({ ...t, date: new Date(t.date) }));
+    if (typeof data.nextId === 'number') nextId = data.nextId;
+    if (typeof data.selectedStrategy === 'string' || data.selectedStrategy === null) selectedStrategy = data.selectedStrategy;
+    if (data.inv && typeof data.inv === 'object') inv = data.inv;
+  } catch {}
+}
+
+function getInvestmentCategoryId() {
+  const c = categories.find(x => (x.name || '').toLowerCase() === 'inwestycje' && x.type === 'wydatek');
+  return c ? c.id : null;
+}
+
+function getInvestmentContribTotal() {
+  const catId = getInvestmentCategoryId();
+  if (!catId) return 0;
+  return transactions
+    .filter(t => t.catId === catId && t.amount < 0)
+    .reduce((s,t) => s + Math.abs(t.amount), 0);
+}
+
+function ensureInvInit() {
+  if (!inv || typeof inv !== 'object') inv = { walletPLN: 0, market: structuredClone(defaultMarket), holdings: {}, invTx: [] };
+  if (!inv.market || !Array.isArray(inv.market.stocks) || !Array.isArray(inv.market.bonds)) inv.market = structuredClone(defaultMarket);
+  // migracja starej nazwy
+  if (typeof inv.walletFNC === 'number' && !inv._migratedToPLN) {
+    inv.walletPLN = inv.walletFNC;
+    inv._migratedToPLN = true;
+  }
+  if (typeof inv.walletPLN !== 'number' || isNaN(inv.walletPLN)) inv.walletPLN = 0;
+  // alias: walletFNC → walletPLN dla reszty kodu
+  Object.defineProperty(inv, 'walletFNC', {
+    get() { return this.walletPLN; },
+    set(v) { this.walletPLN = v; },
+    configurable: true,
+  });
+  if (!inv.holdings || typeof inv.holdings !== 'object') inv.holdings = {};
+  if (!Array.isArray(inv.invTx)) inv.invTx = [];
+  if (!inv._initialized) {
+    const contrib = Math.max(0, getInvestmentContribTotal());
+    inv.walletPLN = contrib;
+    inv._initialized = true;
+  }
+  if (!inv.market.lastUpdated) inv.market.lastUpdated = new Date().toISOString();
+}
+
+function pln(n) {
+  return Number(n || 0).toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' zł';
+}
+
+function fnc(n) {
+  return Number(n || 0).toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' zł';
+}
+
+function pct(n) {
+  const v = Number(n || 0);
+  const sign = v > 0 ? '+' : '';
+  return sign + v.toFixed(2) + '%';
+}
+
+function invInstrumentByKey(key) {
+  const [type, id] = (key || '').split(':');
+  if (type === 'stock') {
+    const s = inv.market.stocks.find(x => x.id === id);
+    return s ? { type, ...s } : null;
+  }
+  if (type === 'bond') {
+    const b = inv.market.bonds.find(x => x.id === id);
+    return b ? { type, ...b } : null;
+  }
+  return null;
+}
+
+function invToPLNPrice(instrument) {
+  const price = Number(instrument.price || 0);
+  const cur = instrument.currency || 'PLN';
+  if (cur === 'PLN') return price;
+  if (cur === 'USD') return price * (inv.fxUSDPLN || 4.05);
+  if (cur === 'EUR') return price * (inv.fxEURPLN || 4.27);
+  return price;
+}
+
+// Portfel wyłącznie w PLN — brak waluty FNC
+function fxPLNPerFNC() { return 1.0; }
+function toFNC(plnAmt) { return Number(plnAmt || 0); }
+function toPLN(fncAmt) { return Number(fncAmt || 0); }
+
+function invPortfolioMetrics() {
+  let value = 0;
+  let cost = 0;
+  Object.values(inv.holdings).forEach(h => {
+    const inst = invInstrumentByKey(`${h.type}:${h.id}`);
+    if (!inst) return;
+    const p = invToPLNPrice(inst);
+    value += h.qty * p;
+    cost += h.qty * (h.avgPricePLN || h.avgPriceFNC || 0);
+  });
+  const pl = value - cost;
+  const plPct = cost > 0 ? (pl / cost) * 100 : 0;
+  return { value, cost, pl, plPct };
+}
+
+function invRender() {
+  ensureInvInit();
+
+  const contrib = getInvestmentContribTotal();
+  const m = invPortfolioMetrics();
+  const walletNow = inv.walletPLN !== undefined ? inv.walletPLN : 0;
+  const totalPLN = walletNow + m.value;
+  const totalPL = totalPLN - contrib;
+  const totalPLPct = contrib > 0 ? (totalPL / contrib) * 100 : 0;
+
+  document.getElementById('invContribTotal').textContent = fmt(contrib);
+
+  document.getElementById('invSummaryCards').innerHTML = `
+    <div class="card">
+      <div class="card-label">Gotówka (PLN)</div>
+      <div class="card-value" style="color:var(--accent)">${pln(walletNow)}</div>
+      <div class="card-sub">Środki dostępne do inwestowania</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Wartość portfela</div>
+      <div class="card-value">${pln(m.value)}</div>
+      <div class="card-sub">Koszt nabycia: <span class="mono">${pln(m.cost)}</span></div>
+    </div>
+    <div class="card">
+      <div class="card-label">Wynik vs wpłaty</div>
+      <div class="card-value" style="color:${totalPL>=0?'var(--green)':'var(--red)'}">${pln(totalPL)}</div>
+      <div class="card-sub">${contrib>0 ? `Stopa: <span class="mono">${pct(totalPLPct)}</span> • Łącznie: <span class="mono">${pln(totalPLN)}</span>` : 'Zasil konto, aby zacząć'}</div>
+    </div>
+  `;
+
+  const stamp = inv.market.lastUpdated ? new Date(inv.market.lastUpdated) : null;
+  const fxStr = inv.fxUSDPLN ? ` · USD/PLN: ${inv.fxUSDPLN.toFixed(4)} · EUR/PLN: ${(inv.fxEURPLN||4.27).toFixed(4)}` : '';
+  document.getElementById('invMarketStamp').textContent = stamp
+    ? `ceny: ${String(stamp.getHours()).padStart(2,'0')}:${String(stamp.getMinutes()).padStart(2,'0')}${fxStr}`
+    : 'ceny: —';
+
+  document.getElementById('invStocksBody').innerHTML = inv.market.stocks.map(s => {
+    const change = s.prev ? ((s.price - s.prev) / s.prev) * 100 : 0;
+    const cls = change > 0.05 ? 'change-up' : change < -0.05 ? 'change-down' : 'change-neutral';
+    const etfMeta = ETF_TICKERS.find(e => e.id === s.id);
+    const xtbUrl = etfMeta ? etfMeta.xtb : 'https://www.xtb.com/pl/oferta/rynki/etf';
+    const priceDisplay = s.price > 0 && s.price !== 100
+      ? `${pln(invToPLNPrice(s))} <span class="muted small">(${s.price.toFixed(2)} ${s.currency})</span>`
+      : '—';
+    return `
+      <tr>
+        <td>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div class="cat-icon" style="background:var(--blue-dim); width:30px; height:30px; font-size:11px; font-weight:700; color:var(--blue);">ETF</div>
+            <div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <strong>${s.id}</strong>
+                <span class="muted small">${s.name}</span>
+              </div>
+              <div class="muted small mono">${s.currency} · ${s.category || 'ETF'}</div>
+            </div>
+          </div>
+        </td>
+        <td class="mono">${priceDisplay}</td>
+        <td class="mono ${s.price === 100 ? 'change-neutral' : cls}">${s.price === 100 ? '—' : (change > 0 ? '+' : '') + change.toFixed(2) + '%'}</td>
+        <td>
+          <div style="display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap;">
+            <a href="${xtbUrl}" target="_blank" rel="noopener noreferrer" class="btn-xtb-link" title="Kup w XTB">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              XTB
+            </a>
+            <button class="pill-btn buy" onclick="invQuickPick('stock','${s.id}','buy')">Symulator</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('') || `<tr><td colspan="4"><div class="empty"><div class="empty-icon">📈</div>Brak instrumentów</div></td></tr>`;
+
+  document.getElementById('invBondsBody').innerHTML = inv.market.bonds.map(b => {
+    const typeColor = b.type?.includes('inflacja') ? 'var(--red)' :
+                      b.type?.includes('zmienne') ? 'var(--blue)' : 'var(--green)';
+    const typeIcon = b.type?.includes('inflacja') ? '📈' :
+                     b.type?.includes('zmienne') ? '〜' : '🔒';
+    return `
+      <tr>
+        <td>
+          <div style="display:flex; flex-direction:column; gap:3px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; color:var(--gold);">${b.id}</span>
+              <span class="muted small">${b.name}</span>
+            </div>
+            <div style="font-size:11px; color:var(--text-dimmer); line-height:1.5;">${b.desc}</div>
+          </div>
+        </td>
+        <td class="mono" style="color:var(--gold); font-weight:700;">${b.couponPct.toFixed(2)}%</td>
+        <td>
+          <span style="font-size:11px; padding:2px 7px; border-radius:100px; background:var(--surface2); color:${typeColor}; white-space:nowrap;">${typeIcon} ${b.type}</span>
+        </td>
+        <td class="mono muted" style="white-space:nowrap;">${b.duration}</td>
+        <td style="font-size:11px; color:var(--text-dim); max-width:200px;">${b.earlyPenalty}</td>
+        <td>
+          <a href="https://www.obligacjeskarbowe.pl/" target="_blank" rel="noopener noreferrer" class="btn-xtb-link" title="Kup na obligacjeskarbowe.pl">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            Kup
+          </a>
+        </td>
+      </tr>
+    `;
+  }).join('') || `<tr><td colspan="6"><div class="empty"><div class="empty-icon">💵</div>Brak instrumentów</div></td></tr>`;
+
+  const sel = document.getElementById('invOrderInstrument');
+  const current = sel.value;
+  const options = [
+    ...inv.market.stocks.map(s => ({ key: `stock:${s.id}`, label: `📈 ${s.id} — ${s.name}` })),
+    ...inv.market.bonds.map(b => ({ key: `bond:${b.id}`,  label: `💵 ${b.id} — ${b.name}` })),
+  ];
+  sel.innerHTML = options.map(o => `<option value="${o.key}">${o.label}</option>`).join('');
+  if (options.some(o => o.key === current)) sel.value = current;
+
+  const holdings = Object.values(inv.holdings).filter(h => h.qty > 0);
+  if (!holdings.length) {
+    document.getElementById('invPortfolioBody').innerHTML = `<tr><td colspan="6"><div class="empty"><div class="empty-icon">🧺</div>Portfel jest pusty</div></td></tr>`;
+  } else {
+    document.getElementById('invPortfolioBody').innerHTML = holdings.map(h => {
+      const inst = invInstrumentByKey(`${h.type}:${h.id}`);
+      const nowPLN = inst ? invToPLNPrice(inst) : 0;
+      const val = h.qty * nowPLN;
+      const cost = h.qty * (h.avgPricePLN || h.avgPriceFNC || 0);
+      const plAbs = val - cost;
+      const plPct = cost > 0 ? (plAbs / cost) * 100 : 0;
+      return `
+        <tr>
+          <td>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <div class="cat-icon" style="background:${h.type === 'stock' ? 'var(--blue-dim)' : 'var(--gold-dim)'}; width:30px; height:30px;">
+                ${h.type === 'stock' ? '📈' : '💵'}
+              </div>
+              <div>
+                <div><strong>${h.id}</strong> <span class="muted small">${inst ? inst.name : ''}</span></div>
+                <div class="muted small mono">${h.type === 'stock' ? 'akcje' : 'obligacje'}</div>
+              </div>
+            </div>
+          </td>
+          <td class="mono">${h.qty}</td>
+          <td class="mono">${pln(h.avgPricePLN || h.avgPriceFNC || 0)}</td>
+          <td class="mono">${pln(val)}</td>
+          <td class="mono" style="color:${plAbs>=0?'var(--green)':'var(--red)'}">${pln(plAbs)} <span class="muted">(${pct(plPct)})</span></td>
+          <td>
+            <div style="display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap;">
+              <button class="pill-btn sell" onclick="invQuickPick('${h.type}','${h.id}','sell')">Sprzedaj</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  if (inv.invTx.length === 0) {
+    document.getElementById('invTxList').innerHTML = '<div class="empty"><div class="empty-icon">🧾</div>Brak transakcji inwestycyjnych</div>';
+  } else {
+    const sorted = [...inv.invTx].sort((a,b) => b.ts - a.ts);
+    document.getElementById('invTxList').innerHTML = sorted.slice(0,60).map(t => {
+      const color = t.side === 'buy' ? 'var(--red)' : 'var(--green)';
+      const dotColor = t.side === 'buy' ? 'var(--red)' : 'var(--green)';
+      const sign = t.side === 'buy' ? '-' : '+';
+      const d = new Date(t.ts);
+      const dateStr = `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+      return `
+        <div class="tx-item">
+          <div class="tx-dot" style="background:${dotColor};"></div>
+          <div class="tx-cat">
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+              <strong>${t.instrumentId}</strong>
+              <span class="muted small">${t.instrumentName}</span>
+              <span class="chip">${t.type === 'stock' ? 'akcje' : 'obligacje'}</span>
+              <span class="chip">${t.side === 'buy' ? 'kupno' : 'sprzedaż'}</span>
+            </div>
+            <div class="muted small mono" style="margin-top:4px;">${t.qty} × ${pln(t.pricePLN)}</div>
+          </div>
+          <div class="tx-date">${dateStr}</div>
+          <div class="tx-amount" style="color:${color}">${sign}${pln(Math.abs(t.totalPLN || t.totalFNC || 0))}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  const hint = document.getElementById('invOrderHint');
+  const inst = invInstrumentByKey(document.getElementById('invOrderInstrument').value);
+  if (inst) {
+    hint.textContent = `Cena: ${pln(invToPLNPrice(inst))} • Gotówka: ${pln(inv.walletPLN !== undefined ? inv.walletPLN : 0)}`;
+  } else {
+    hint.textContent = '';
+  }
+}
+
+function invSwitchMarketTab(tab) {
+  document.getElementById('invMarketStocksWrap').style.display = tab === 'stocks' ? 'block' : 'none';
+  document.getElementById('invMarketBondsWrap').style.display = tab === 'bonds' ? 'block' : 'none';
+  document.getElementById('invTabBtnStocks').classList.toggle('active-filter', tab === 'stocks');
+  document.getElementById('invTabBtnBonds').classList.toggle('active-filter', tab === 'bonds');
+}
+
+async function invRefreshMarket() {
+  ensureInvInit();
+  document.getElementById('invMarketStamp').textContent = 'ceny: ładowanie…';
+
+  const tickers = [...ETF_TICKERS.map(e => e.id), 'USDPLN=X', 'EURPLN=X'];
+  const symbols = tickers.join(',');
+  const url = `https://query1.finance.yahoo.com/v8/finance/spark?symbols=${symbols}&range=2d&interval=1d`;
+  const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+
+  try {
+    const res = await fetch(proxy);
+    const json = await res.json();
+    const data = JSON.parse(json.contents);
+    const results = data?.spark?.result || [];
+
+    // FX rates
+    const usdRes = results.find(r => r.symbol === 'USDPLN=X');
+    const eurRes = results.find(r => r.symbol === 'EURPLN=X');
+    if (usdRes?.response?.[0]) {
+      const closes = usdRes.response[0].indicators?.quote?.[0]?.close?.filter(c => c != null) || [];
+      if (closes.length) inv.fxUSDPLN = Number(closes[closes.length-1].toFixed(4));
+    }
+    if (eurRes?.response?.[0]) {
+      const closes = eurRes.response[0].indicators?.quote?.[0]?.close?.filter(c => c != null) || [];
+      if (closes.length) inv.fxEURPLN = Number(closes[closes.length-1].toFixed(4));
+    }
+
+    inv.market.stocks = inv.market.stocks.map(s => {
+      const spark = results.find(r => r.symbol === s.id);
+      if (spark && spark.response && spark.response[0]) {
+        const closes = spark.response[0].indicators?.quote?.[0]?.close || [];
+        const validCloses = closes.filter(c => c != null && !isNaN(c));
+        if (validCloses.length >= 2) {
+          const prev = validCloses[validCloses.length - 2];
+          const price = validCloses[validCloses.length - 1];
+          return { ...s, prev: Number(prev.toFixed(2)), price: Number(price.toFixed(2)) };
+        } else if (validCloses.length === 1) {
+          return { ...s, price: Number(validCloses[0].toFixed(2)), prev: Number(validCloses[0].toFixed(2)) };
+        }
+      }
+      return s;
+    });
+
+    inv.market.lastUpdated = new Date().toISOString();
+    saveAll();
+    invRender();
+    calcSavingsAlloc();
+  } catch (err) {
+    console.warn('Yahoo Finance fetch failed, using simulated refresh:', err);
+    const jitter = (x, pctMax) => x * (1 + (Math.random() * 2 - 1) * pctMax);
+    inv.market.stocks = inv.market.stocks.map(s => {
+      const prev = s.price;
+      const next = Math.max(0.01, jitter(prev, 0.015));
+      return { ...s, prev, price: Number(next.toFixed(2)) };
+    });
+    inv.market.lastUpdated = new Date().toISOString();
+    saveAll();
+    invRender();
+    calcSavingsAlloc();
+  }
+}
+
+function invQuickPick(type, id, side) {
+  document.getElementById('invOrderInstrument').value = `${type}:${id}`;
+  document.getElementById('invOrderSide').value = side;
+  document.getElementById('invOrderQty').focus();
+  invRender();
+}
+
+function invSubmitOrder() {
+  ensureInvInit();
+  const key = document.getElementById('invOrderInstrument').value;
+  const side = document.getElementById('invOrderSide').value;
+  const qty = Math.floor(Number(document.getElementById('invOrderQty').value));
+  const inst = invInstrumentByKey(key);
+  if (!inst || !qty || qty <= 0) return;
+
+  const pricePLN = invToPLNPrice(inst);
+  const totalPLN = qty * pricePLN;
+  const hKey = `${inst.type}:${inst.id}`;
+  const holding = inv.holdings[hKey] || { type: inst.type, id: inst.id, qty: 0, avgPricePLN: 0 };
+
+  if (side === 'buy') {
+    const walletNow = inv.walletPLN !== undefined ? inv.walletPLN : (inv.walletFNC || 0);
+    if (walletNow + 1e-9 < totalPLN) {
+      alert('Brak wystarczających środków w portfelu (PLN). Zasil konto z budżetu.');
+      return;
+    }
+    const newQty = holding.qty + qty;
+    const newAvg = newQty > 0 ? ((holding.qty * (holding.avgPricePLN || 0)) + totalPLN) / newQty : pricePLN;
+    holding.qty = newQty;
+    holding.avgPricePLN = newAvg;
+    holding.avgPriceFNC = newAvg; // alias dla kompatybilności
+    if (inv.walletPLN !== undefined) inv.walletPLN -= totalPLN;
+    else inv.walletFNC -= totalPLN;
+  } else {
+    if (holding.qty < qty) {
+      alert('Nie masz tyle jednostek w portfelu.');
+      return;
+    }
+    holding.qty -= qty;
+    if (inv.walletPLN !== undefined) inv.walletPLN += totalPLN;
+    else inv.walletFNC += totalPLN;
+    if (holding.qty === 0) { holding.avgPricePLN = 0; holding.avgPriceFNC = 0; }
+  }
+
+  inv.holdings[hKey] = holding;
+  inv.invTx.push({
+    id: nextId++,
+    ts: Date.now(),
+    side,
+    type: inst.type,
+    instrumentId: inst.id,
+    instrumentName: inst.name,
+    qty,
+    pricePLN,
+    priceFNC: pricePLN,
+    totalPLN,
+    totalFNC: totalPLN,
+  });
+
+  document.getElementById('invOrderQty').value = '';
+  saveAll();
+  invRender();
+}
+
+function invTopUpFromBudget() {
+  ensureInvInit();
+  const amt = Number(document.getElementById('invTopupAmount').value);
+  if (!amt || amt <= 0) return;
+  const catId = getInvestmentCategoryId();
+  if (!catId) {
+    alert('Nie znaleziono kategorii budżetowej "Inwestycje".');
+    return;
+  }
+  transactions.push({ id: nextId++, catId, amount: -Math.abs(amt), date: new Date(), note: 'Zasilenie konta inwestycyjnego' });
+  if (inv.walletPLN !== undefined) inv.walletPLN += Math.abs(amt);
+  else inv.walletFNC += Math.abs(amt);
+  document.getElementById('invTopupAmount').value = '';
+  saveAll();
+  renderAll();
+  invRender();
+}
+
+function invClearHistory() {
+  ensureInvInit();
+  if (!confirm('Usunąć historię transakcji inwestycyjnych?')) return;
+  inv.invTx = [];
+  saveAll();
+  invRender();
+}
+
+function invReset() {
+  if (!confirm('Zresetować portfel (gotówka, pozycje i historia)?')) return;
+  inv = {
+    walletPLN: Math.max(0, getInvestmentContribTotal()),
+    market: structuredClone(defaultMarket),
+    holdings: {},
+    invTx: [],
+    _initialized: true,
+  };
+  saveAll();
+  invRender();
+}
+
+// ==================== STRATEGIES ====================
+const strategies = [
+  {
+    id: 'passive100',
+    name: 'Pasywna 100-wiek',
+    risk: 'low',
+    riskLabel: 'Niskie',
+    difficulty: 1,
+    activity: 'Niska',
+    desc: 'Klasyczna reguła pasywna: % akcji = 100 minus Twój wiek. Reszta w obligacjach. Im starszy, tym mniej ryzyka. Idealna dla długoterminowych inwestorów.',
+    alloc: [
+      { label: 'Akcje (100 − wiek %)', pct: 70, color: '#5c9bff' },
+      { label: 'Obligacje (wiek %)', pct: 30, color: '#f0c93a' },
+    ],
+    tags: ['Pasywny','Automatyczny','Emerytalny'],
+    note: 'ETF-y: <strong>VWCE.DE</strong> (akcje globalne) + <strong>AGGH.L</strong> (obligacje). Roczny rebalans. Przykład: masz 30 lat → 70% akcje, 30% obligacje. Za 10 lat: 60%/40%. Dostępne w XTB bez prowizji powyżej 100 EUR.',
+    returns: '6–9% rocznie (zależnie od alokacji)',
+  },
+  {
+    id: 'gem',
+    name: 'GEM',
+    fullName: 'Global Equities Momentum',
+    risk: 'medium',
+    riskLabel: 'Średnie',
+    difficulty: 2,
+    activity: 'Średnia',
+    desc: 'Strategia momentum — inwestujesz tam, gdzie jest najsilniejszy trend. Aktywne przełączanie między akcjami USA, globalnymi i obligacjami.',
+    alloc: [
+      { label: 'Akcje USA', pct: 45, color: '#5c9bff' },
+      { label: 'Akcje globalne', pct: 35, color: '#3effa3' },
+      { label: 'Obligacje', pct: 20, color: '#f0c93a' },
+    ],
+    tags: ['Momentum','Aktywny','Trend-following'],
+    note: 'ETF-y: <strong>CSPX.L</strong> (S&P 500) + <strong>VWCE.DE</strong> (All-World) + <strong>AGGH.L</strong> (obligacje). Miesięczna weryfikacja który ma wyższe momentum (12-miesięczna stopa zwrotu). Bazuje na modelu Gary Antonacci.',
+    returns: '10–12% rocznie (historycznie)',
+  },
+  {
+    id: 'allweather',
+    name: 'All Weather',
+    risk: 'low',
+    riskLabel: 'Niskie',
+    difficulty: 2,
+    activity: 'Niska',
+    desc: 'Portfel Raya Dalio zaprojektowany do pracy w każdych warunkach rynkowych — wzrost, recesja, inflacja, deflacja.',
+    alloc: [
+      { label: 'Akcje', pct: 30, color: '#5c9bff' },
+      { label: 'Obligacje długie', pct: 40, color: '#f0c93a' },
+      { label: 'Obligacje krótkie', pct: 15, color: '#c8f53e' },
+      { label: 'Złoto', pct: 7.5, color: '#f0a33a' },
+      { label: 'Surowce', pct: 7.5, color: '#ff5757' },
+    ],
+    tags: ['Defensywny','Ray Dalio','Dywersyfikacja'],
+    note: 'ETF-y: <strong>VWCE.DE</strong> 30% + <strong>LYLT.L</strong> 40% (obligacje długie) + <strong>SXRL.L</strong> 15% (krótkie) + <strong>SGLD.L</strong> 7,5% (złoto) + surowce 7,5%. Sprawdza się w długim horyzoncie. Niskie drawdowny.',
+    returns: '7–9% rocznie (historycznie)',
+  },
+  {
+    id: 'permanent',
+    name: 'Permanent Portfolio',
+    risk: 'low',
+    riskLabel: 'Bardzo niskie',
+    difficulty: 1,
+    activity: 'Bardzo niska',
+    desc: 'Maksymalna prostota i stabilność. Równy podział na 4 klasy aktywów, które reagują na różne scenariusze gospodarcze.',
+    alloc: [
+      { label: 'Akcje', pct: 25, color: '#5c9bff' },
+      { label: 'Obligacje', pct: 25, color: '#f0c93a' },
+      { label: 'Złoto', pct: 25, color: '#f0a33a' },
+      { label: 'Gotówka', pct: 25, color: '#7a8099' },
+    ],
+    tags: ['Konserwatywny','Harry Browne','Prosty'],
+    note: 'ETF-y: <strong>IWDA.L</strong> 25% + <strong>AGGH.L</strong> 25% + <strong>SGLD.L</strong> 25% (złoto) + konto oszczędnościowe 25%. Rebalansowanie raz do roku. Idealne przy niskiej tolerancji na zmienność.',
+    returns: '5–7% rocznie (historycznie)',
+  },
+  {
+    id: 'golden',
+    name: 'Golden Butterfly',
+    risk: 'low',
+    riskLabel: 'Niskie',
+    difficulty: 2,
+    activity: 'Niska',
+    desc: 'Ulepszona wersja Permanent Portfolio — dodaje ekspozycję na spółki wartościowe małej kapitalizacji dla wyższych zwrotów.',
+    alloc: [
+      { label: 'Akcje Total Mkt', pct: 20, color: '#5c9bff' },
+      { label: 'Akcje Small Value', pct: 20, color: '#8b5cf6' },
+      { label: 'Obligacje długie', pct: 20, color: '#f0c93a' },
+      { label: 'Obligacje krótkie', pct: 20, color: '#c8f53e' },
+      { label: 'Złoto', pct: 20, color: '#f0a33a' },
+    ],
+    tags: ['Zbalansowany','Ulepszony PP'],
+    note: 'Lepszy Sharpe ratio niż Permanent Portfolio. Roczny rebalans wystarczy.',
+    returns: '7–9% rocznie (historycznie)',
+  },
+  {
+    id: 'lazy',
+    name: 'Lazy Portfolio',
+    risk: 'medium',
+    riskLabel: 'Średnie',
+    difficulty: 1,
+    activity: 'Bardzo niska',
+    desc: 'Minimalistyczny portfel 3 ETF-ów (Bogleheads). Minimalna obsługa, szerokie pokrycie rynku. Idealne dla osób bez czasu.',
+    alloc: [
+      { label: 'Total US Mkt', pct: 40, color: '#5c9bff' },
+      { label: 'International', pct: 40, color: '#3effa3' },
+      { label: 'Obligacje', pct: 20, color: '#f0c93a' },
+    ],
+    tags: ['Pasywny','Bogleheads','Prosty'],
+    note: 'Dwa ETF-y: <strong>VWCE.DE</strong> (Vanguard All-World, 60%) + <strong>AGGH.L</strong> (Global Agg Bond, 40%). Dostępne w XTB. Rebalans raz do roku. Minimalna obsługa, szerokie pokrycie całego rynku globalnego.',
+    returns: '8–10% rocznie (historycznie)',
+  },
+  {
+    id: 'coresatellite',
+    name: 'Core-Satellite',
+    risk: 'medium',
+    riskLabel: 'Średnie',
+    difficulty: 2,
+    activity: 'Średnia',
+    desc: 'Stabilna baza (rdzeń) w pasywnych ETF-ach uzupełniona o aktywne, wysoce ryzykowne "satelity" dla wyższych zwrotów.',
+    alloc: [
+      { label: 'Rdzeń (S&P 500)', pct: 60, color: '#5c9bff' },
+      { label: 'Satelity', pct: 40, color: '#ff5757' },
+    ],
+    tags: ['Hybrydowy','Aktywno-pasywny','Elastyczny'],
+    note: 'Satelity mogą obejmować: sektory, krypto, small-cap, rynki wschodzące.',
+    returns: '8–14% rocznie (zależy od satelitów)',
+  },
+  {
+    id: 'riskparity',
+    name: 'Risk Parity',
+    risk: 'high',
+    riskLabel: 'Wysokie',
+    difficulty: 3,
+    activity: 'Wysoka',
+    desc: 'Każda klasa aktywów ma równy wkład w ryzyko (nie w % kapitału). Wymaga stosowania dźwigni i zaawansowanej analizy.',
+    alloc: [
+      { label: 'Akcje (niska waga)', pct: 25, color: '#5c9bff' },
+      { label: 'Obligacje (wysoka waga)', pct: 50, color: '#f0c93a' },
+      { label: 'Surowce', pct: 15, color: '#ff5757' },
+      { label: 'Złoto', pct: 10, color: '#f0a33a' },
+    ],
+    tags: ['Zaawansowany','Hedge Fund','Dźwignia'],
+    note: 'Używana przez Bridgewater Associates. Nie zalecana bez doświadczenia.',
+    returns: '6–10% (przy odpowiedniej dźwigni)',
+  },
+  {
+    id: 'momentum',
+    name: 'Momentum',
+    risk: 'high',
+    riskLabel: 'Wysokie',
+    difficulty: 3,
+    activity: 'Miesięczna',
+    desc: 'Strategia momentum — inwestujesz w spółki o najwyższej stopie zwrotu z ostatnich 12 miesięcy (z pominięciem ostatniego miesiąca). Do wyboru: 30 najlepszych spółek z S&P 500 (globalnie) lub 15 spółek z polskich indeksów (WIG20, mWIG40, sWIG80).',
+    alloc: [
+      { label: 'Top spółki (dynamicznie)', pct: 90, color: '#c8f53e' },
+      { label: 'Gotówka / rezerwa', pct: 10, color: '#7a8099' },
+    ],
+    tags: ['Momentum','Aktywny','SP500','WIG'],
+    note: 'Co miesiąc rankinujesz spółki wg stopy zwrotu 12M minus ostatni miesiąc (tzw. "12-1 momentum"). Kupujesz top 30 z S&P 500 (przez <strong>CSPX.L</strong> lub CFD w XTB) albo top 15 z WIG20+mWIG40+sWIG80 (GPW). Rebalans co miesiąc. Wymaga dyscypliny i trzymania się sygnałów.',
+    returns: '12–18% rocznie (historycznie, wyższa zmienność)',
+  },
+  {
+    id: 'taa',
+    name: 'TAA',
+    fullName: 'Tactical Asset Allocation',
+    risk: 'high',
+    riskLabel: 'Wysokie',
+    difficulty: 3,
+    activity: 'Wysoka',
+    desc: 'Aktywne zmienianie proporcji aktywów w odpowiedzi na sytuację makroekonomiczną. Wymaga wiedzy i regularnej analizy.',
+    alloc: [
+      { label: 'Akcje (zmienna)', pct: 50, color: '#5c9bff' },
+      { label: 'Obligacje (zmienna)', pct: 30, color: '#f0c93a' },
+      { label: 'Alternatywne', pct: 20, color: '#ff5757' },
+    ],
+    tags: ['Aktywny','Makro','Zaawansowany'],
+    note: 'Optymalne dla inwestorów śledzących rynki i dane makro na co dzień.',
+    returns: 'Zależy od decyzji — potencjalnie 10–20%+',
+  },
+];
+
+// ==================== ETF ALOKACJE PER STRATEGIA ====================
+const strategyETFs = {
+  'passive100': [
+    { ticker: 'VWCE.DE', name: 'Vanguard FTSE All-World',       pct: 70, label: 'Akcje globalne (100−wiek %)', xtb: 'https://www.xtb.com/pl/oferta/rynki/etf/vwce-etf' },
+    { ticker: 'AGGH.L',  name: 'iShares Global Aggregate Bond', pct: 30, label: 'Obligacje (wiek %)',          xtb: 'https://www.xtb.com/pl/oferta/rynki/etf/aggh-etf' },
+  ],
+  'gem': [
+    { ticker: 'CSPX.L',  name: 'iShares Core S&P 500',         pct: 45, label: 'Akcje USA',        xtb: 'https://www.xtb.com/pl/oferta/rynki/etf/cspx-etf' },
+    { ticker: 'VWCE.DE', name: 'Vanguard FTSE All-World',       pct: 35, label: 'Akcje globalne',   xtb: 'https://www.xtb.com/pl/oferta/rynki/etf/vwce-etf' },
+    { ticker: 'AGGH.L',  name: 'iShares Global Aggregate Bond', pct: 20, label: 'Obligacje',        xtb: 'https://www.xtb.com/pl/oferta/rynki/etf/aggh-etf' },
+  ],
+  'allweather': [
+    { ticker: 'VWCE.DE', name: 'Vanguard FTSE All-World',       pct: 30, label: 'Akcje',            xtb: 'https://www.xtb.com/pl/oferta/rynki/etf/vwce-etf' },
+    { ticker: 'LYLT.L',  name: 'Amundi US Treasury Long Term',  pct: 40, label: 'Obligacje długie', xtb: 'https://www.xtb.com/pl/oferta/rynki/etf' },
+    { ticker: 'SXRL.L',  name: 'iShares Treasury 7-10yr',       pct: 15, label: 'Obligacje krótkie',xtb: 'https://www.xtb.com/pl/oferta/rynki/etf' },
+    { ticker: 'SGLD.L',  name: 'iShares Physical Gold ETC',     pct: 7.5,label: 'Złoto',            xtb: 'https://www.xtb.com/pl/oferta/rynki/etf/sgld-etf' },
+    { ticker: 'IQQQ.DE', name: 'iShares Nasdaq 100 (surowce proxy)', pct: 7.5, label: 'Surowce/Inne', xtb: 'https://www.xtb.com/pl/oferta/rynki/etf/iqqq-etf' },
+  ],
+  'permanent': [
+    { ticker: 'IWDA.L',  name: 'iShares Core MSCI World',       pct: 25, label: 'Akcje',            xtb: 'https://www.xtb.com/pl/oferta/rynki/etf/iwda-etf' },
+    { ticker: 'AGGH.L',  name: 'iShares Global Aggregate Bond', pct: 25, label: 'Obligacje',        xtb: 'https://www.xtb.com/pl/oferta/rynki/etf/aggh-etf' },
+    { ticker: 'SGLD.L',  name: 'iShares Physical Gold ETC',     pct: 25, label: 'Złoto',            xtb: 'https://www.xtb.com/pl/oferta/rynki/etf/sgld-etf' },
+    { ticker: null,      name: 'Lokaty / konto oszczędnościowe',pct: 25, label: 'Gotówka',          xtb: null },
+  ],
+  'golden': [
+    { ticker: 'VWCE.DE', name: 'Vanguard FTSE All-World',       pct: 20, label: 'Akcje Total Mkt',  xtb: 'https://www.xtb.com/pl/oferta/rynki/etf/vwce-etf' },
+    { ticker: 'WSML.L',  name: 'iShares World Small Cap',       pct: 20, label: 'Akcje Small Cap',  xtb: 'https://www.xtb.com/pl/oferta/rynki/etf' },
+    { ticker: 'LYLT.L',  name: 'Amundi US Treasury Long Term',  pct: 20, label: 'Obligacje długie', xtb: 'https://www.xtb.com/pl/oferta/rynki/etf' },
+    { ticker: 'SXRL.L',  name: 'iShares Treasury 7-10yr',       pct: 20, label: 'Obligacje krótkie',xtb: 'https://www.xtb.com/pl/oferta/rynki/etf' },
+    { ticker: 'SGLD.L',  name: 'iShares Physical Gold ETC',     pct: 20, label: 'Złoto',            xtb: 'https://www.xtb.com/pl/oferta/rynki/etf/sgld-etf' },
+  ],
+  'lazy': [
+    { ticker: 'VWCE.DE', name: 'Vanguard FTSE All-World',       pct: 60, label: 'Akcje (całość)',   xtb: 'https://www.xtb.com/pl/oferta/rynki/etf/vwce-etf' },
+    { ticker: 'AGGH.L',  name: 'iShares Global Aggregate Bond', pct: 40, label: 'Obligacje',        xtb: 'https://www.xtb.com/pl/oferta/rynki/etf/aggh-etf' },
+  ],
+  'coresatellite': [
+    { ticker: 'CSPX.L',  name: 'iShares Core S&P 500',          pct: 60, label: 'Rdzeń (S&P 500)',  xtb: 'https://www.xtb.com/pl/oferta/rynki/etf/cspx-etf' },
+    { ticker: 'EIMI.L',  name: 'iShares MSCI Emerging Markets', pct: 20, label: 'Satelita: EM',     xtb: 'https://www.xtb.com/pl/oferta/rynki/etf/eimi-etf' },
+    { ticker: 'IQQQ.DE', name: 'iShares Nasdaq 100',            pct: 10, label: 'Satelita: Tech',   xtb: 'https://www.xtb.com/pl/oferta/rynki/etf/iqqq-etf' },
+    { ticker: 'WSML.L',  name: 'iShares World Small Cap',       pct: 10, label: 'Satelita: SmallCap',xtb: 'https://www.xtb.com/pl/oferta/rynki/etf' },
+  ],
+  'riskparity': [
+    { ticker: 'VWCE.DE', name: 'Vanguard FTSE All-World',       pct: 25, label: 'Akcje',            xtb: 'https://www.xtb.com/pl/oferta/rynki/etf/vwce-etf' },
+    { ticker: 'LYLT.L',  name: 'Amundi US Treasury Long Term',  pct: 50, label: 'Obligacje długie', xtb: 'https://www.xtb.com/pl/oferta/rynki/etf' },
+    { ticker: 'IQQQ.DE', name: 'iShares Nasdaq 100 (surowce proxy)', pct: 15, label: 'Surowce',     xtb: 'https://www.xtb.com/pl/oferta/rynki/etf/iqqq-etf' },
+    { ticker: 'SGLD.L',  name: 'iShares Physical Gold ETC',     pct: 10, label: 'Złoto',            xtb: 'https://www.xtb.com/pl/oferta/rynki/etf/sgld-etf' },
+  ],
+  'momentum': null, // obsługiwane osobno — pokazuje dwa warianty
+  'taa': [
+    { ticker: 'VWCE.DE', name: 'Vanguard FTSE All-World',        pct: 50, label: 'Akcje (zmienna)', xtb: 'https://www.xtb.com/pl/oferta/rynki/etf/vwce-etf' },
+    { ticker: 'AGGH.L',  name: 'iShares Global Aggregate Bond',  pct: 30, label: 'Obligacje',       xtb: 'https://www.xtb.com/pl/oferta/rynki/etf/aggh-etf' },
+    { ticker: 'SGLD.L',  name: 'iShares Physical Gold ETC',      pct: 20, label: 'Alternatywne',    xtb: 'https://www.xtb.com/pl/oferta/rynki/etf/sgld-etf' },
+  ],
+};
+
+function calcSavingsAlloc() {
+  const amount = parseFloat(document.getElementById('savingsAmount').value);
+  const result = document.getElementById('savingsAllocResult');
+  const empty = document.getElementById('savingsAllocEmpty');
+  const tableEl = document.getElementById('savingsAllocTable');
+
+  if (!selectedStrategy || !amount || amount <= 0) {
+    result.style.display = 'none';
+    empty.style.display = 'block';
+    empty.textContent = !selectedStrategy
+      ? '👆 Wybierz strategię powyżej i wpisz kwotę, którą chcesz zainwestować'
+      : '👆 Wpisz kwotę oszczędności do zainwestowania';
+    return;
+  }
+
+  result.style.display = 'block';
+  empty.style.display = 'none';
+  const stratName = strategies.find(s => s.id === selectedStrategy)?.name || selectedStrategy;
+
+  // ---- MOMENTUM — specjalny widok z dwoma wariantami ----
+  if (selectedStrategy === 'momentum') {
+    const sp500Top30 = [
+      { t:'NVDA', n:'NVIDIA', s:'Półprzewodniki' },
+      { t:'META', n:'Meta Platforms', s:'Media społ.' },
+      { t:'AVGO', n:'Broadcom', s:'Półprzewodniki' },
+      { t:'LLY', n:'Eli Lilly', s:'Farmacja' },
+      { t:'AMZN', n:'Amazon', s:'E-comm/Cloud' },
+      { t:'ORCL', n:'Oracle', s:'Oprogramowanie' },
+      { t:'MSFT', n:'Microsoft', s:'Software/Cloud' },
+      { t:'GOOGL', n:'Alphabet', s:'Reklama/AI' },
+      { t:'GE', n:'GE Aerospace', s:'Przemysł' },
+      { t:'AXON', n:'Axon Enterprise', s:'Technologia' },
+      { t:'TSM', n:'TSMC', s:'Półprzewodniki' },
+      { t:'AAPL', n:'Apple', s:'Konsumer' },
+      { t:'JPM', n:'JPMorgan Chase', s:'Bankowość' },
+      { t:'V', n:'Visa', s:'Płatności' },
+      { t:'UNH', n:'UnitedHealth', s:'Ubezpieczenia' },
+      { t:'MA', n:'Mastercard', s:'Płatności' },
+      { t:'XOM', n:'ExxonMobil', s:'Energia' },
+      { t:'HD', n:'Home Depot', s:'Budownictwo' },
+      { t:'PG', n:'Procter & Gamble', s:'FMCG' },
+      { t:'WMT', n:'Walmart', s:'Handel' },
+      { t:'COST', n:'Costco', s:'Handel' },
+      { t:'NOW', n:'ServiceNow', s:'SaaS' },
+      { t:'AMD', n:'AMD', s:'Półprzewodniki' },
+      { t:'NFLX', n:'Netflix', s:'Streaming' },
+      { t:'AXP', n:'American Express', s:'Finanse' },
+      { t:'GS', n:'Goldman Sachs', s:'Bankowość' },
+      { t:'RTX', n:'RTX Corp.', s:'Obronność' },
+      { t:'CAT', n:'Caterpillar', s:'Przemysł' },
+      { t:'TMO', n:'Thermo Fisher', s:'Biotech' },
+      { t:'ISRG', n:'Intuitive Surgical', s:'Medycyna' },
+    ];
+    const wigTop15 = [
+      { t:'PKO', n:'PKO BP', idx:'WIG20', s:'Bankowość' },
+      { t:'PZU', n:'PZU', idx:'WIG20', s:'Ubezpieczenia' },
+      { t:'LPP', n:'LPP', idx:'WIG20', s:'Odzież/Retail' },
+      { t:'DNP', n:'Dino Polska', idx:'mWIG40', s:'Handel spoż.' },
+      { t:'ALE', n:'Allegro.eu', idx:'WIG20', s:'E-commerce' },
+      { t:'KRU', n:'Kruk', idx:'mWIG40', s:'Windykacja' },
+      { t:'PEO', n:'Bank Pekao', idx:'WIG20', s:'Bankowość' },
+      { t:'MBK', n:'mBank', idx:'WIG20', s:'Bankowość' },
+      { t:'CPS', n:'Cyfrowy Polsat', idx:'WIG20', s:'Media/Telecom' },
+      { t:'KGH', n:'KGHM', idx:'WIG20', s:'Górnictwo/Miedź' },
+      { t:'ATC', n:'Auto Partner', idx:'mWIG40', s:'Motoryzacja' },
+      { t:'PKN', n:'PKN Orlen', idx:'WIG20', s:'Paliwa/Energia' },
+      { t:'EUR', n:'Eurobank Ergasias', idx:'sWIG80', s:'Bankowość' },
+      { t:'VRG', n:'Vistula Group', idx:'sWIG80', s:'Moda/Jubilerstwo' },
+      { t:'BDX', n:'Budimex', idx:'mWIG40', s:'Budownictwo' },
+    ];
+    const amtPerSP = amount / 30;
+    const amtPerWIG = amount / 15;
+    const rowStyle = (i) => i % 2 === 0 ? 'background:rgba(255,255,255,0.015)' : '';
+    const thStyle = 'text-align:left; color:var(--text-dimmer); padding:5px 8px; border-bottom:1px solid var(--border); font-size:10px; letter-spacing:0.5px; font-weight:600;';
+
+    tableEl.innerHTML = `
+      <div style="margin-bottom:16px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+        <div><span style="font-size:13px; color:var(--text-dim);">Strategia: </span><strong style="color:var(--accent);">Momentum</strong></div>
+        <div><span style="font-size:13px; color:var(--text-dim);">Kwota: </span><strong>${amount.toLocaleString('pl-PL')} zł</strong></div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+
+        <!-- WARIANT A -->
+        <div style="background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius); padding:16px;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+            <span style="font-size:18px;">🇺🇸</span>
+            <div>
+              <div style="font-weight:700; font-size:14px;">Wariant A: S&amp;P 500 — Top 30</div>
+              <div style="font-size:11px; color:var(--text-dimmer);">${amtPerSP.toLocaleString('pl-PL',{maximumFractionDigits:0})} zł / spółkę · ranking 12−1 momentum</div>
+            </div>
+          </div>
+          <div style="font-size:11px; color:var(--text-dimmer); margin-bottom:10px; padding:7px 10px; background:var(--surface); border-radius:var(--radius-sm); line-height:1.6;">
+            💡 Ranking: <strong>finviz.com</strong> Screener → Performance → sort 1Y desc, pomiń ostatni miesiąc
+          </div>
+          <table style="width:100%; border-collapse:collapse; font-size:12px;">
+            <thead><tr>
+              <th style="${thStyle}">#</th>
+              <th style="${thStyle}">Ticker</th>
+              <th style="${thStyle}">Spółka</th>
+              <th style="${thStyle}">Sektor</th>
+              <th style="text-align:right; ${thStyle}">Kwota (zł)</th>
+              <th style="${thStyle}"></th>
+            </tr></thead>
+            <tbody>
+              ${sp500Top30.map((c, i) => `
+                <tr style="${rowStyle(i)}">
+                  <td style="padding:5px 8px; color:var(--text-dimmer); font-family:'JetBrains Mono',monospace; font-size:11px;">${i+1}</td>
+                  <td style="padding:5px 8px; font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--blue);">${c.t}</td>
+                  <td style="padding:5px 8px; color:var(--text); font-size:12px;">${c.n}</td>
+                  <td style="padding:5px 8px; color:var(--text-dimmer); font-size:11px;">${c.s}</td>
+                  <td style="padding:5px 8px; text-align:right; font-family:'JetBrains Mono',monospace; color:var(--accent); font-size:12px;">${amtPerSP.toLocaleString('pl-PL',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+                  <td style="padding:5px 8px;">
+                    <a href="https://www.xtb.com/pl/oferta/rynki/akcje" target="_blank" rel="noopener" class="btn-xtb-link" style="font-size:10px; padding:2px 7px;">XTB</a>
+                  </td>
+                </tr>`).join('')}
+            </tbody>
+            <tfoot><tr>
+              <td colspan="4" style="padding:8px; border-top:1px solid var(--border); font-weight:600; font-size:12px;">Łącznie (30 spółek)</td>
+              <td style="padding:8px; border-top:1px solid var(--border); text-align:right; font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--green);">${amount.toLocaleString('pl-PL',{minimumFractionDigits:2,maximumFractionDigits:2})} zł</td>
+              <td style="border-top:1px solid var(--border);"></td>
+            </tr></tfoot>
+          </table>
+        </div>
+
+        <!-- WARIANT B -->
+        <div style="background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius); padding:16px;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+            <span style="font-size:18px;">🇵🇱</span>
+            <div>
+              <div style="font-weight:700; font-size:14px;">Wariant B: WIG20 + mWIG40 + sWIG80 — Top 15</div>
+              <div style="font-size:11px; color:var(--text-dimmer);">${amtPerWIG.toLocaleString('pl-PL',{maximumFractionDigits:0})} zł / spółkę · ranking 12−1 momentum</div>
+            </div>
+          </div>
+          <div style="font-size:11px; color:var(--text-dimmer); margin-bottom:10px; padding:7px 10px; background:var(--surface); border-radius:var(--radius-sm); line-height:1.6;">
+            💡 Ranking: <strong>stooq.pl</strong> → Indeksy WIG20/mWIG40/sWIG80 → stopa zwrotu 1Y, pomiń ostatni miesiąc
+          </div>
+          <table style="width:100%; border-collapse:collapse; font-size:12px;">
+            <thead><tr>
+              <th style="${thStyle}">#</th>
+              <th style="${thStyle}">Ticker</th>
+              <th style="${thStyle}">Spółka</th>
+              <th style="${thStyle}">Indeks</th>
+              <th style="text-align:right; ${thStyle}">Kwota (zł)</th>
+              <th style="${thStyle}"></th>
+            </tr></thead>
+            <tbody>
+              ${wigTop15.map((c, i) => `
+                <tr style="${rowStyle(i)}">
+                  <td style="padding:5px 8px; color:var(--text-dimmer); font-family:'JetBrains Mono',monospace; font-size:11px;">${i+1}</td>
+                  <td style="padding:5px 8px; font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--green);">${c.t}</td>
+                  <td style="padding:5px 8px; color:var(--text); font-size:12px;">${c.n}</td>
+                  <td style="padding:5px 8px;">
+                    <span style="font-size:10px; padding:1px 6px; border-radius:100px; background:var(--surface); color:var(--text-dimmer); white-space:nowrap;">${c.idx}</span>
+                  </td>
+                  <td style="padding:5px 8px; text-align:right; font-family:'JetBrains Mono',monospace; color:var(--accent); font-size:12px;">${amtPerWIG.toLocaleString('pl-PL',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+                  <td style="padding:5px 8px;">
+                    <a href="https://www.xtb.com/pl/oferta/rynki/akcje" target="_blank" rel="noopener" class="btn-xtb-link" style="font-size:10px; padding:2px 7px;">XTB</a>
+                  </td>
+                </tr>`).join('')}
+            </tbody>
+            <tfoot><tr>
+              <td colspan="4" style="padding:8px; border-top:1px solid var(--border); font-weight:600; font-size:12px;">Łącznie (15 spółek)</td>
+              <td style="padding:8px; border-top:1px solid var(--border); text-align:right; font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--green);">${amount.toLocaleString('pl-PL',{minimumFractionDigits:2,maximumFractionDigits:2})} zł</td>
+              <td style="border-top:1px solid var(--border);"></td>
+            </tr></tfoot>
+          </table>
+        </div>
+      </div>
+
+      <div style="margin-top:14px; background:rgba(200,245,62,0.06); border:1px solid rgba(200,245,62,0.2); border-radius:var(--radius-sm); padding:12px 16px; font-size:12px; color:var(--text-dim); line-height:1.7;">
+        💡 <strong>Zasada momentum 12−1:</strong> Stopa zwrotu liczona od kursu sprzed 12 miesięcy do kursu sprzed 1 miesiąca (pomijasz ostatni miesiąc — efekt odwrócenia). Co miesiąc wymieniasz spółki z dołu rankingu na nowe. Listy są przykładowe — <strong>aktualizuj je samodzielnie co miesiąc</strong> korzystając z finviz.com i stooq.pl.
+      </div>
+    `;
+    return;
+  }
+
+  // ---- PASSIVE100 — kalkulator z wiekiem ----
+  if (selectedStrategy === 'passive100') {
+    const ageInput = document.getElementById('savingsAge') ? parseInt(document.getElementById('savingsAge').value) : NaN;
+    const age = !isNaN(ageInput) && ageInput > 10 && ageInput < 100 ? ageInput : null;
+    const stockPct = age ? Math.max(10, Math.min(90, 100 - age)) : 70;
+    const bondPct = 100 - stockPct;
+    const stockAmt = amount * stockPct / 100;
+    const bondAmt = amount * bondPct / 100;
+    tableEl.innerHTML = `
+      <div style="margin-bottom:14px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+        <div><span style="font-size:13px; color:var(--text-dim);">Strategia: </span><strong style="color:var(--accent);">Pasywna 100-wiek</strong></div>
+        <div><span style="font-size:13px; color:var(--text-dim);">Kwota: </span><strong>${amount.toLocaleString('pl-PL')} zł</strong></div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:13px; color:var(--text-dim);">Twój wiek:</span>
+          <input type="number" id="savingsAge" min="15" max="90" placeholder="np. 30" value="${age||''}"
+            style="width:80px;" oninput="calcSavingsAlloc()">
+          ${age ? `<span style="font-size:12px; color:var(--accent);">→ ${stockPct}% akcje / ${bondPct}% obligacje</span>` : '<span style="font-size:12px; color:var(--text-dimmer);">wpisz wiek aby dopasować alokację</span>'}
+        </div>
+      </div>
+      <table class="inv-table" style="width:100%;">
+        <thead><tr><th>ETF</th><th style="text-align:right;">Alokacja</th><th style="text-align:right;">Kwota (zł)</th><th style="text-align:right;">Akcja</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>
+              <div style="display:flex; flex-direction:column; gap:2px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span style="font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; color:var(--blue);">VWCE.DE</span>
+                  <span style="font-size:12px; color:var(--text-dim);">Vanguard FTSE All-World</span>
+                </div>
+                <span style="font-size:11px; color:var(--text-dimmer);">Akcje globalne (${stockPct}%)</span>
+              </div>
+            </td>
+            <td style="text-align:right; font-family:'JetBrains Mono',monospace; font-weight:600; color:var(--blue);">${stockPct}%</td>
+            <td style="text-align:right; font-family:'JetBrains Mono',monospace;">${stockAmt.toLocaleString('pl-PL',{minimumFractionDigits:2,maximumFractionDigits:2})} zł</td>
+            <td style="text-align:right;"><a href="https://www.xtb.com/pl/oferta/rynki/etf/vwce-etf" target="_blank" rel="noopener" class="btn-xtb-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:10px;height:10px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Kup w XTB</a></td>
+          </tr>
+          <tr>
+            <td>
+              <div style="display:flex; flex-direction:column; gap:2px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span style="font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; color:var(--gold);">AGGH.L</span>
+                  <span style="font-size:12px; color:var(--text-dim);">iShares Global Aggregate Bond</span>
+                </div>
+                <span style="font-size:11px; color:var(--text-dimmer);">Obligacje globalne (${bondPct}%)</span>
+              </div>
+            </td>
+            <td style="text-align:right; font-family:'JetBrains Mono',monospace; font-weight:600; color:var(--gold);">${bondPct}%</td>
+            <td style="text-align:right; font-family:'JetBrains Mono',monospace;">${bondAmt.toLocaleString('pl-PL',{minimumFractionDigits:2,maximumFractionDigits:2})} zł</td>
+            <td style="text-align:right;"><a href="https://www.xtb.com/pl/oferta/rynki/etf/aggh-etf" target="_blank" rel="noopener" class="btn-xtb-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:10px;height:10px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Kup w XTB</a></td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="2" style="padding:12px; border-top:1px solid var(--border); font-weight:600;">Łącznie</td>
+            <td style="text-align:right; padding:12px; border-top:1px solid var(--border); font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--green);">${amount.toLocaleString('pl-PL',{minimumFractionDigits:2,maximumFractionDigits:2})} zł</td>
+            <td style="border-top:1px solid var(--border);"></td>
+          </tr>
+        </tfoot>
+      </table>
+    `;
+    return;
+  }
+
+  // ---- POZOSTAŁE STRATEGIE ----
+  const etfs = strategyETFs[selectedStrategy];
+  if (!etfs) { result.style.display = 'none'; return; }
+
+  tableEl.innerHTML = `
+    <div style="margin-bottom:14px;">
+      <span style="font-size:13px; color:var(--text-dim);">Strategia: </span>
+      <strong style="color:var(--accent);">${stratName}</strong>
+      <span style="font-size:13px; color:var(--text-dim); margin-left:12px;">Kwota: </span>
+      <strong>${amount.toLocaleString('pl-PL')} zł</strong>
+    </div>
+    <table class="inv-table" style="width:100%;">
+      <thead>
+        <tr>
+          <th>ETF</th>
+          <th style="text-align:right;">Alokacja</th>
+          <th style="text-align:right;">Kwota (zł)</th>
+          <th style="text-align:right;">Akcja</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${etfs.map(e => {
+          const allocAmt = amount * e.pct / 100;
+          const etfMarket = inv.market.stocks.find(s => s.id === e.ticker);
+          const priceOk = etfMarket && etfMarket.price && etfMarket.price !== 100;
+          const pricePLN = priceOk ? invToPLNPrice(etfMarket) : null;
+          const units = pricePLN ? Math.floor(allocAmt / pricePLN) : null;
+          const priceInfo = pricePLN
+            ? `~${units} jedn. po ${pln(pricePLN)}`
+            : 'Odśwież notowania ↑';
+          return `
+          <tr>
+            <td>
+              <div style="display:flex; flex-direction:column; gap:2px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  ${e.ticker ? `<span style="font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; color:var(--blue);">${e.ticker}</span>` : ''}
+                  <span style="font-size:12px; color:var(--text-dim);">${e.name}</span>
+                </div>
+                <span style="font-size:11px; color:var(--text-dimmer);">${e.label} · ${priceInfo}</span>
+              </div>
+            </td>
+            <td style="text-align:right; font-family:'JetBrains Mono',monospace; font-weight:600; color:var(--accent);">${e.pct}%</td>
+            <td style="text-align:right; font-family:'JetBrains Mono',monospace;">${allocAmt.toLocaleString('pl-PL', {minimumFractionDigits:2, maximumFractionDigits:2})} zł</td>
+            <td style="text-align:right;">
+              ${e.xtb ? `
+                <a href="${e.xtb}" target="_blank" rel="noopener noreferrer" class="btn-xtb-link">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:10px;height:10px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                  Kup w XTB
+                </a>
+              ` : `<span style="font-size:11px; color:var(--text-dimmer);">Lokata/bank</span>`}
+            </td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="2" style="padding:12px; border-top:1px solid var(--border); font-weight:600;">Łącznie</td>
+          <td style="text-align:right; padding:12px; border-top:1px solid var(--border); font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--green);">${amount.toLocaleString('pl-PL', {minimumFractionDigits:2,maximumFractionDigits:2})} zł</td>
+          <td style="border-top:1px solid var(--border);"></td>
+        </tr>
+      </tfoot>
+    </table>
+  `;
+}
+
+// ==================== INIT ====================
+function init() {
+  loadAll();
+  updateHeaderDate();
+  renderCatTable();
+  renderSummaryCards();
+  renderTxList();
+  renderMonthlyBalanceHistory();
+  renderStrategies();
+  updateSelects();
+  renderExpenseBreakdown();
+  renderCatBreakdownBars();
+  ensureInvInit();
+  invRender();
+  // Automatycznie pobierz notowania ETF przy starcie
+  invRefreshMarket();
+}
+
+function updateHeaderDate() {
+  const d = new Date();
+  const months = ['sty','lut','mar','kwi','maj','cze','lip','sie','wrz','paź','lis','gru'];
+  document.getElementById('headerDate').textContent =
+    `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+// ==================== CATEGORIES ====================
+function addCategory() {
+  const name = document.getElementById('catName').value.trim();
+  const icon = document.getElementById('catIcon').value.trim() || '📁';
+  const type = document.getElementById('catType').value;
+  if (!name) return;
+  categories.push({ id: nextId++, name, icon, type, budget: 0 });
+  document.getElementById('catName').value = '';
+  document.getElementById('catIcon').value = '';
+  renderAll();
+}
+
+// ==================== TRANSACTIONS ====================
+function addTransaction() {
+  const amount = parseFloat(document.getElementById('quickAmount').value);
+  const catId = parseInt(document.getElementById('quickCat').value);
+  if (!amount || !catId) return;
+  const cat = categories.find(c => c.id === catId);
+  const realAmount = cat.type === 'dochód' ? Math.abs(amount) : -Math.abs(amount);
+  transactions.push({ id: nextId++, catId, amount: realAmount, date: new Date(), note: '' });
+  document.getElementById('quickAmount').value = '';
+  renderAll();
+}
+
+function clearTransactions() {
+  if (confirm('Usunąć wszystkie transakcje?')) {
+    transactions = [];
+    renderAll();
+  }
+}
+
+// ==================== RENDER ALL ====================
+function renderAll() {
+  renderCatTable();
+  renderSummaryCards();
+  renderTxList();
+  renderMonthlyBalanceHistory();
+  renderExpenseBreakdown();
+  updateSelects();
+  renderCatBreakdownBars();
+  saveAll();
+}
+
+// ==================== SUMMARY CARDS ====================
+function renderSummaryCards() {
+  const income = transactions.filter(t => t.amount > 0).reduce((s,t) => s+t.amount, 0);
+  const expense = Math.abs(transactions.filter(t => t.amount < 0).reduce((s,t) => s+t.amount, 0));
+  const balance = income - expense;
+  const plannedIncome = categories.filter(c => c.type === 'dochód').reduce((s,c) => s+c.budget, 0);
+  const plannedExpense = categories.filter(c => c.type === 'wydatek').reduce((s,c) => s+c.budget, 0);
+
+  document.getElementById('summaryCards').innerHTML = `
+    <div class="card">
+      <div class="card-label">Planowane wpływy</div>
+      <div class="card-value" style="color:var(--green)">${fmt(plannedIncome)}</div>
+      <div class="card-sub">Realnie: <span class="mono">${fmt(income)}</span></div>
+    </div>
+    <div class="card">
+      <div class="card-label">Planowane wydatki</div>
+      <div class="card-value" style="color:var(--red)">${fmt(plannedExpense)}</div>
+      <div class="card-sub">Realnie: <span class="mono">${fmt(expense)}</span></div>
+    </div>
+    <div class="card">
+      <div class="card-label">Bilans</div>
+      <div class="card-value" style="color:${balance>=0?'var(--green)':'var(--red)'}">${fmt(balance)}</div>
+      <div class="card-sub">${balance >= 0 ? '✓ Budżet pod kontrolą' : '⚠ Przekroczony budżet'}</div>
+    </div>
+  `;
+
+  // Right balance card
+  document.getElementById('balanceValue').textContent = fmt(balance);
+  document.getElementById('balanceValue').style.color = balance >= 0 ? 'var(--green)' : 'var(--red)';
+  document.getElementById('balanceSub').textContent = balance >= 0
+    ? `Oszczędzono ${fmt(balance)} tego miesiąca`
+    : `Przekroczenie budżetu o ${fmt(Math.abs(balance))}`;
+
+  // Tx tab totals
+  document.getElementById('totalIncome').textContent = fmt(income);
+  document.getElementById('totalExpense').textContent = fmt(expense);
+}
+
+// ==================== CATEGORY TABLE ====================
+function renderCatTable() {
+  const rows = [];
+  let totalPlanned = 0, totalReal = 0;
+
+  categories.forEach(cat => {
+    const real = transactions
+      .filter(t => t.catId === cat.id)
+      .reduce((s,t) => s + t.amount, 0);
+
+    const planned = cat.budget;
+    const diff = real - (cat.type === 'dochód' ? planned : -planned);
+    const pct = planned > 0 ? Math.min(Math.abs(real) / planned * 100, 150) : 0;
+
+    // For incomes, "real" should be positive
+    const displayReal = cat.type === 'dochód' ? real : Math.abs(real);
+    const displayPlanned = planned;
+
+    let changeClass, changeSign, changeAmt;
+    if (cat.type === 'dochód') {
+      changeAmt = real - planned;
+      changeClass = changeAmt >= 0 ? 'change-up' : 'change-down';
+      changeSign = changeAmt >= 0 ? '▲' : '▼';
+    } else {
+      changeAmt = Math.abs(real) - planned;
+      changeClass = changeAmt <= 0 ? 'change-up' : 'change-down';
+      changeSign = changeAmt > 0 ? '▲' : '▼';
+    }
+
+    const overBudget = cat.type === 'wydatek' && Math.abs(real) > planned && planned > 0;
+    const barColor = cat.type === 'dochód' ? 'var(--green)' : (overBudget ? 'var(--red)' : 'var(--accent)');
+
+    totalPlanned += cat.type === 'dochód' ? planned : -planned;
+    totalReal += real;
+
+    rows.push(`
+      <tr>
+        <td>
+          <div class="cat-name-cell">
+            <div class="cat-icon" style="background:${cat.type === 'dochód' ? 'var(--green-dim)' : 'var(--blue-dim)'}">
+              ${cat.icon}
+            </div>
+            <div>
+              <div>${cat.name}</div>
+              <div style="font-size:11px; color:var(--text-dimmer)">
+                <span class="type-pill ${cat.type === 'dochód' ? 'income' : 'expense'}">${cat.type}</span>
+              </div>
+            </div>
+          </div>
+        </td>
+        <td>
+          <span class="mono" style="cursor:pointer; border-bottom:1px dashed var(--border);"
+            onclick="editBudget(${cat.id}, this)">${fmt(displayPlanned)}</span>
+        </td>
+        <td><span class="mono">${fmt(displayReal)}</span></td>
+        <td>
+          <div class="ticker-change">
+            <span class="${changeClass}">${changeSign} ${fmt(Math.abs(changeAmt))}</span>
+          </div>
+        </td>
+        <td style="min-width:100px;">
+          <div style="font-size:11px; color:var(--text-dimmer); margin-bottom:3px; text-align:right;">${pct.toFixed(0)}%</div>
+          <div class="progress-wrap">
+            <div class="progress-fill" style="width:${pct}%; background:${barColor};"></div>
+          </div>
+        </td>
+      </tr>
+    `);
+  });
+
+  document.getElementById('catTableBody').innerHTML = rows.join('') || `
+    <tr><td colspan="5"><div class="empty"><div class="empty-icon">📋</div>Brak kategorii</div></td></tr>
+  `;
+}
+
+function editBudget(catId, el) {
+  const cat = categories.find(c => c.id === catId);
+  const val = prompt(`Nowy budżet dla "${cat.name}" (zł):`, cat.budget);
+  if (val !== null && !isNaN(parseFloat(val))) {
+    cat.budget = parseFloat(val);
+    renderAll();
+  }
+}
+
+// ==================== TX LIST ====================
+function renderTxList() {
+  if (transactions.length === 0) {
+    document.getElementById('txList').innerHTML = '<div class="empty"><div class="empty-icon">💸</div>Brak transakcji</div>';
+    return;
+  }
+  const sortedAsc = [...transactions].sort((a,b) => a.date - b.date);
+  let running = 0;
+  const balanceMap = {};
+  sortedAsc.forEach(t => {
+    running += t.amount;
+    balanceMap[t.id] = running;
+  });
+
+  const sorted = [...transactions].sort((a,b) => b.date - a.date);
+  document.getElementById('txList').innerHTML = sorted.map(t => {
+    const cat = categories.find(c => c.id === t.catId) || { name: '?', icon: '?', type: 'wydatek' };
+    const color = t.amount >= 0 ? 'var(--green)' : 'var(--red)';
+    const sign = t.amount >= 0 ? '+' : '';
+    const d = t.date;
+    const dateStr = `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}`;
+    const afterBal = balanceMap[t.id] || 0;
+    return `
+      <div class="tx-item">
+        <div style="font-size:18px; width:24px; text-align:center;">${cat.icon}</div>
+        <div class="tx-cat">${cat.name}</div>
+        <div class="tx-meta">
+          <div class="tx-date">${dateStr}</div>
+          <div class="tx-date">Saldo: ${fmt(afterBal)}</div>
+        </div>
+        <div class="tx-amount" style="color:${color}">${sign}${fmt(Math.abs(t.amount))}</div>
+      </div>
+    `;
+  }).join('');
+
+  // Last activity (tab 1)
+  const last5 = sorted.slice(0,5);
+  document.getElementById('txLastActivity').innerHTML = last5.length ? last5.map(t => {
+    const cat = categories.find(c => c.id === t.catId) || { name: '?', icon: '?', type: 'wydatek' };
+    const color = t.amount >= 0 ? 'var(--green)' : 'var(--red)';
+    const sign = t.amount >= 0 ? '+' : '';
+    return `
+      <div class="tx-item" style="padding:8px 0;">
+        <div style="font-size:16px; width:22px; text-align:center;">${cat.icon}</div>
+        <div class="tx-cat" style="font-size:12px;">${cat.name}</div>
+        <div class="tx-amount" style="color:${color}; font-size:12px;">${sign}${fmt(Math.abs(t.amount))}</div>
+      </div>
+    `;
+  }).join('') : '<div class="empty" style="padding:20px;"><div class="empty-icon">📋</div>Brak danych</div>';
+}
+
+// ==================== EXPENSE BREAKDOWN ====================
+function renderExpenseBreakdown() {
+  const expCats = categories.filter(c => c.type === 'wydatek');
+  const totals = expCats.map(c => ({
+    cat: c,
+    total: Math.abs(transactions.filter(t => t.catId === c.id && t.amount < 0).reduce((s,t) => s+t.amount, 0))
+  })).filter(x => x.total > 0).sort((a,b) => b.total - a.total);
+
+  const grandTotal = totals.reduce((s,x) => s+x.total, 0);
+  const colors = ['#5c9bff','#3effa3','#c8f53e','#f0c93a','#f0a33a','#ff5757','#8b5cf6','#06b6d4'];
+
+  if (!grandTotal) {
+    document.getElementById('expenseBreakdown').innerHTML = '<div class="empty" style="padding:20px;"><div class="empty-icon">📊</div>Brak wydatków</div>';
+    return;
+  }
+
+  let progress = 0;
+  const pieSlices = totals.map((x,i) => {
+    const pctVal = (x.total / grandTotal) * 100;
+    const start = progress;
+    const end = progress + pctVal;
+    progress = end;
+    return `${colors[i%colors.length]} ${start.toFixed(2)}% ${end.toFixed(2)}%`;
+  }).join(', ');
+
+  document.getElementById('expenseBreakdown').innerHTML = `
+    <div class="expense-split">
+      <div class="alloc-bars">
+        ${totals.map((x,i) => `
+          <div class="alloc-row">
+            <div class="alloc-label">${x.cat.icon} ${x.cat.name}</div>
+            <div class="alloc-bar-wrap">
+              <div class="alloc-bar-fill" style="width:${(x.total/grandTotal*100).toFixed(1)}%; background:${colors[i%colors.length]};"></div>
+            </div>
+            <div class="alloc-pct">${(x.total/grandTotal*100).toFixed(0)}%</div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="expense-pie-wrap">
+        <div class="expense-pie" style="background: conic-gradient(${pieSlices});" title="Udział kategorii wydatków"></div>
+      </div>
+    </div>
+  `;
+}
+
+function renderCatBreakdownBars() {
+  const inRangeTx = getTransactionsInRange(txRange);
+  const expCats = categories.filter(c => c.type === 'wydatek');
+  const totals = expCats.map(c => ({
+    cat: c,
+    total: Math.abs(inRangeTx.filter(t => t.catId === c.id && t.amount < 0).reduce((s,t) => s+t.amount, 0))
+  })).filter(x => x.total > 0);
+
+  const max = Math.max(...totals.map(x => x.total), 1);
+  const colors = ['#5c9bff','#3effa3','#c8f53e','#f0c93a','#f0a33a','#ff5757','#8b5cf6','#06b6d4'];
+
+  if (!totals.length) {
+    document.getElementById('catBreakdownBars').innerHTML = '<div class="empty" style="padding:20px;"><div class="empty-icon">📊</div>Brak wydatków dla wybranego okresu</div>';
+    return;
+  }
+
+  document.getElementById('catBreakdownBars').innerHTML = `
+    <div class="bar-chart">
+      ${totals.slice(0,8).map((x,i) => `
+        <div class="bar-col">
+          <div style="font-size:10px; color:var(--text-dim); font-family:'JetBrains Mono',monospace; margin-bottom:2px;">
+            ${fmt(x.total,true)}
+          </div>
+          <div class="bar-fill" style="height:${Math.max((x.total/max*60),2)}px; background:${colors[i%colors.length]};"></div>
+          <div class="bar-lbl">${x.cat.icon}</div>
+        </div>
+      `).join('')}
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;">
+      ${totals.slice(0,8).map((x,i) => `
+        <div style="display:flex; align-items:center; gap:5px; font-size:11px; color:var(--text-dim);">
+          <div style="width:8px; height:8px; border-radius:50%; background:${colors[i%colors.length]};"></div>
+          ${x.cat.name}
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+// ==================== SELECTS ====================
+function updateSelects() {
+  const sel = document.getElementById('quickCat');
+  const val = sel.value;
+  sel.innerHTML = '<option value="">— wybierz kategorię —</option>';
+  categories.forEach(c => {
+    const o = document.createElement('option');
+    o.value = c.id;
+    o.textContent = `${c.icon} ${c.name} (${c.type})`;
+    if (String(c.id) === val) o.selected = true;
+    sel.appendChild(o);
+  });
+}
+
+function getRangeStart(rangeKey, now = new Date()) {
+  const start = new Date(now);
+  start.setHours(0,0,0,0);
+  if (rangeKey === 'week') {
+    const day = start.getDay();
+    const diff = day === 0 ? 6 : day - 1;
+    start.setDate(start.getDate() - diff);
+    return start;
+  }
+  if (rangeKey === 'month') {
+    start.setDate(1);
+    return start;
+  }
+  if (rangeKey === '3m') {
+    return new Date(start.getFullYear(), start.getMonth() - 2, 1);
+  }
+  if (rangeKey === '6m') {
+    return new Date(start.getFullYear(), start.getMonth() - 5, 1);
+  }
+  if (rangeKey === 'year') {
+    return new Date(start.getFullYear(), 0, 1);
+  }
+  return new Date(0);
+}
+
+function getTransactionsInRange(rangeKey) {
+  const start = getRangeStart(rangeKey);
+  return transactions.filter(t => t.date >= start);
+}
+
+function setTxRange(rangeKey, btn) {
+  txRange = rangeKey;
+  const wrap = btn.closest('.range-switch');
+  if (wrap) {
+    wrap.querySelectorAll('.btn-ghost').forEach(b => b.classList.remove('active-filter'));
+    btn.classList.add('active-filter');
+  }
+  renderCatBreakdownBars();
+}
+
+function renderMonthlyBalanceHistory() {
+  const byMonth = {};
+  transactions.forEach(t => {
+    const d = t.date;
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    byMonth[key] = (byMonth[key] || 0) + t.amount;
+  });
+  const months = Object.entries(byMonth)
+    .sort((a,b) => a[0] < b[0] ? 1 : -1)
+    .slice(0, 12);
+  const listEl = document.getElementById('balanceHistoryList');
+  const sumEl = document.getElementById('balanceHistoryTotal');
+  if (!listEl || !sumEl) return;
+  if (!months.length) {
+    listEl.innerHTML = '<div class="tx-date">Brak historycznych bilansów</div>';
+    sumEl.textContent = '0 zł';
+    return;
+  }
+  const total = months.reduce((s, m) => s + m[1], 0);
+  listEl.innerHTML = months.map(([k,v]) => {
+    const [y,m] = k.split('-');
+    return `
+      <div class="balance-history-row">
+        <span class="tx-date">${m}.${y}</span>
+        <span class="mono" style="color:${v >= 0 ? 'var(--green)' : 'var(--red)'}">${fmt(v)}</span>
+      </div>
+    `;
+  }).join('');
+  sumEl.textContent = fmt(total);
+  sumEl.style.color = total >= 0 ? 'var(--green)' : 'var(--red)';
+}
+
+function toggleBalanceHistory() {
+  const wrap = document.getElementById('balanceHistoryWrap');
+  if (!wrap) return;
+  wrap.classList.toggle('open');
+}
+
+// ==================== STRATEGIES ====================
+function renderStrategies(filter = 'all') {
+  const grid = document.getElementById('strategyGrid');
+  const filtered = filter === 'all' ? strategies : strategies.filter(s => s.risk === filter);
+
+  grid.innerHTML = filtered.map(s => {
+    const riskClass = s.risk === 'low' ? 'risk-low' : s.risk === 'medium' ? 'risk-med' : 'risk-high';
+    const dots = [1,2,3].map(i => `<div class="diff-dot ${i <= s.difficulty ? 'filled' : ''}"></div>`).join('');
+
+    return `
+      <div class="strategy-card ${selectedStrategy === s.id ? 'selected' : ''}"
+           onclick="selectStrategy('${s.id}')">
+        <div class="strat-header">
+          <div>
+            <div class="strat-name">${s.name}</div>
+            ${s.fullName ? `<div style="font-size:11px; color:var(--text-dimmer); margin-top:2px;">${s.fullName}</div>` : ''}
+          </div>
+          <div class="strat-risk ${riskClass}">${s.riskLabel}</div>
+        </div>
+        <div class="strat-desc">${s.desc}</div>
+        <div class="alloc-bars" style="margin-top:0;">
+          ${s.alloc.map(a => `
+            <div class="alloc-row">
+              <div class="alloc-label">${a.label}</div>
+              <div class="alloc-bar-wrap">
+                <div class="alloc-bar-fill" style="width:${a.pct}%; background:${a.color};"></div>
+              </div>
+              <div class="alloc-pct">${a.pct}%</div>
+            </div>
+          `).join('')}
+        </div>
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-top:14px;">
+          <div style="display:flex; gap:4px; align-items:center;">
+            <span style="font-size:11px; color:var(--text-dimmer); margin-right:4px;">Trudność:</span>
+            <div class="diff-dots">${dots}</div>
+          </div>
+          <span style="font-size:11px; color:var(--text-dimmer);">Aktywność: ${s.activity}</span>
+        </div>
+        <div style="display:flex; gap:5px; flex-wrap:wrap; margin-top:10px;">
+          ${s.tags.map(t => `<span style="font-size:10px; padding:2px 7px; border-radius:100px; background:var(--surface2); color:var(--text-dimmer);">${t}</span>`).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function selectStrategy(id) {
+  selectedStrategy = id;
+  renderStrategies(currentFilter);
+  showStrategyDetail(id);
+  calcSavingsAlloc();
+  setTimeout(() => {
+    document.getElementById('savingsCalcCard').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, 100);
+}
+
+let currentFilter = 'all';
+
+function filterStrategies(filter, btn) {
+  currentFilter = filter;
+  document.querySelectorAll('.active-filter').forEach(b => b.classList.remove('active-filter'));
+  btn.classList.add('active-filter');
+  renderStrategies(filter);
+  if (selectedStrategy && !strategies.find(s => s.id === selectedStrategy && (filter === 'all' || s.risk === filter))) {
+    document.getElementById('strategyDetail').style.display = 'none';
+    selectedStrategy = null;
+  }
+}
+
+function showStrategyDetail(id) {
+  const s = strategies.find(x => x.id === id);
+  const detail = document.getElementById('strategyDetail');
+  const riskClass = s.risk === 'low' ? 'risk-low' : s.risk === 'medium' ? 'risk-med' : 'risk-high';
+  const dots = [1,2,3].map(i => `<div class="diff-dot ${i <= s.difficulty ? 'filled' : ''}"></div>`).join('');
+
+  detail.style.display = 'block';
+  detail.innerHTML = `
+    <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+      <div>
+        <div style="font-family:'DM Serif Display',serif; font-size:24px; letter-spacing:-0.5px;">${s.name}${s.fullName ? ' — '+s.fullName : ''}</div>
+        <div style="color:var(--text-dim); font-size:13px; margin-top:6px;">${s.desc}</div>
+      </div>
+      <div class="strat-risk ${riskClass}" style="font-size:13px; padding:5px 14px;">${s.riskLabel} ryzyko</div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:20px;">
+      <div class="card" style="padding:14px;">
+        <div class="card-label">Historyczne zwroty</div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:16px; color:var(--green); margin-top:4px;">${s.returns}</div>
+      </div>
+      <div class="card" style="padding:14px;">
+        <div class="card-label">Aktywność</div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:16px; margin-top:4px;">${s.activity}</div>
+      </div>
+      <div class="card" style="padding:14px;">
+        <div class="card-label">Trudność</div>
+        <div style="display:flex; gap:5px; margin-top:8px;">${dots}</div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:16px;">
+      <div class="card-label" style="margin-bottom:10px;">Alokacja aktywów</div>
+      <div class="alloc-bars">
+        ${s.alloc.map(a => `
+          <div class="alloc-row">
+            <div class="alloc-label" style="font-size:13px; color:var(--text);">${a.label}</div>
+            <div class="alloc-bar-wrap" style="height:8px;">
+              <div class="alloc-bar-fill" style="width:${a.pct}%; background:${a.color};"></div>
+            </div>
+            <div class="alloc-pct" style="font-size:13px;">${a.pct}%</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <hr class="sep">
+
+    <div>
+      <div class="card-label" style="margin-bottom:8px;">Wskazówka praktyczna</div>
+      <div style="font-size:13px; color:var(--text-dim); line-height:1.7;">${s.note}</div>
+    </div>
+
+    <div style="display:flex; gap:5px; flex-wrap:wrap; margin-top:14px;">
+      ${s.tags.map(t => `<span style="font-size:11px; padding:3px 10px; border-radius:100px; background:var(--accent-dim); color:var(--accent);">${t}</span>`).join('')}
+    </div>
+  `;
+
+  detail.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ==================== TABS ====================
+function switchTab(i) {
+  document.querySelectorAll('.tab-content').forEach((t,idx) => t.classList.toggle('active', idx === i));
+  document.querySelectorAll('nav button').forEach((b,idx) => b.classList.toggle('active', idx === i));
+}
+
+// ==================== COLLAPSIBLE ====================
+function togglePanel(btn) {
+  btn.classList.toggle('open');
+  btn.nextElementSibling.classList.toggle('open');
+}
+
+// ==================== FORMAT ====================
+function fmt(n, compact = false) {
+  if (compact && Math.abs(n) >= 1000) return (n/1000).toFixed(1) + 'k';
+  return n.toLocaleString('pl-PL', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' zł';
+}
+
+// ==================== AUTH ====================
+const USERS_KEY = 'finplan_users';
+const SESSION_KEY = 'finplan_session';
+
+function getUsers() { try { return JSON.parse(localStorage.getItem(USERS_KEY) || '{}'); } catch { return {}; } }
+function saveUsers(u) { localStorage.setItem(USERS_KEY, JSON.stringify(u)); }
+function getSession() { try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch { return null; } }
+
+function openLoginModal() {
+  const modal = document.getElementById('loginModal');
+  modal.style.display = 'flex';
+  document.getElementById('loginErr').style.display = 'none';
+  document.getElementById('regErr').style.display = 'none';
+}
+function closeLoginModal() {
+  document.getElementById('loginModal').style.display = 'none';
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLoginModal(); });
+document.getElementById('loginModal').addEventListener('click', function(e) { if (e.target === this) closeLoginModal(); });
+
+function switchLoginTab(tab) {
+  document.getElementById('lform-login').style.display = tab === 'login' ? 'block' : 'none';
+  document.getElementById('lform-reg').style.display = tab === 'reg' ? 'block' : 'none';
+  document.getElementById('ltab-login').classList.toggle('active', tab === 'login');
+  document.getElementById('ltab-reg').classList.toggle('active', tab === 'reg');
+}
+
+function doLogin() {
+  const email = document.getElementById('lEmail').value.trim().toLowerCase();
+  const pass = document.getElementById('lPass').value;
+  const errEl = document.getElementById('loginErr');
+  if (!email || !pass) { showAuthErr(errEl, 'Uzupełnij e-mail i hasło.'); return; }
+  const users = getUsers();
+  if (!users[email] || users[email].pw !== btoa(pass)) { showAuthErr(errEl, 'Nieprawidłowy e-mail lub hasło.'); return; }
+  setSession({ email, name: users[email].name });
+}
+
+function doRegister() {
+  const name = document.getElementById('rName').value.trim();
+  const email = document.getElementById('rEmail').value.trim().toLowerCase();
+  const pass = document.getElementById('rPass').value;
+  const errEl = document.getElementById('regErr');
+  if (!name || !email || !pass) { showAuthErr(errEl, 'Uzupełnij wszystkie pola.'); return; }
+  if (pass.length < 6) { showAuthErr(errEl, 'Hasło musi mieć min. 6 znaków.'); return; }
+  const users = getUsers();
+  if (users[email]) { showAuthErr(errEl, 'Konto z tym e-mailem już istnieje.'); return; }
+  users[email] = { name, pw: btoa(pass) };
+  saveUsers(users);
+  setSession({ email, name });
+}
+
+function doDemo() { setSession({ email: 'demo', name: 'Demo' }); }
+
+function setSession(user) {
+  localStorage.setItem(SESSION_KEY, JSON.stringify(user));
+  applySession(user);
+  closeLoginModal();
+}
+
+function applySession(user) {
+  const btn = document.querySelector('.login-icon-btn');
+  if (!btn) return;
+  const initials = user.name.split(' ').map(w => w[0] || '').join('').toUpperCase().slice(0,2) || '?';
+  btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span style="font-size:12px; font-weight:600;">${user.name}</span><span onclick="event.stopPropagation(); doLogout()" style="margin-left:4px; opacity:0.5; font-size:11px;" title="Wyloguj">✕</span>`;
+  btn.classList.add('logged-in');
+  btn.onclick = null;
+}
+
+function doLogout() {
+  localStorage.removeItem(SESSION_KEY);
+  const btn = document.querySelector('.login-icon-btn');
+  if (btn) {
+    btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span id="loginBtnLabel">Zaloguj</span>`;
+    btn.classList.remove('logged-in');
+    btn.onclick = openLoginModal;
+  }
+}
+
+function showAuthErr(el, msg) { el.textContent = msg; el.style.display = 'block'; }
+
+function checkSession() {
+  const s = getSession();
+  if (s) applySession(s);
+}
+
+// ==================== START ====================
+init();
+checkSession();
+</script>
+</body>
+  </html>
